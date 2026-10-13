@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Patrimonio · Finanzas personales</title>
+<meta name="description" content="Patrimonio: finanzas personales en COP con diseño Liquid Glass, métricas de gasto y balance de gastos con IA."/>
+<meta name="theme-color" content="#070709"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="icons/trixlogo.png"/>
+<link rel="apple-touch-icon" href="icons/trixlogo.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Patrimonio"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-primary-container": "#ffc7be", "on-secondary": "#690000", "inverse-on-surface": "#313033",
+          "on-surface-variant": "#e6bdb6", "primary-fixed-dim": "#ffb4a8", "surface-container-lowest": "#0e0e10",
+          "secondary-container": "#8c170d", "tertiary-fixed-dim": "#ffb4a8", "inverse-surface": "#e5e1e5",
+          "surface-container-low": "#1c1b1e", "surface-bright": "#39393b", "tertiary-fixed": "#ffdad4",
+          "surface-container-highest": "#353437", "on-secondary-fixed": "#410000", "on-tertiary-fixed": "#410000",
+          "on-secondary-container": "#ff9a8a", "on-tertiary-fixed-variant": "#81271c", "outline-variant": "#5d3f3b",
+          "on-tertiary-container": "#ffc7bf", "primary": "#ffb4a8", "primary-container": "#bb0000",
+          "surface-tint": "#ffb4a8", "background": "#131316", "surface-dim": "#131316", "on-primary-fixed": "#410000",
+          "surface-variant": "#353437", "primary-fixed": "#ffdad4", "tertiary-container": "#9d3c2f",
+          "surface-container": "#201f22", "surface": "#131316", "on-primary": "#690000", "outline": "#ad8882",
+          "on-error-container": "#ffdad6", "on-secondary-fixed-variant": "#8c170d", "surface-container-high": "#2a2a2c",
+          "error": "#ffb4ab", "inverse-primary": "#bf0603", "on-surface": "#e5e1e5", "secondary-fixed-dim": "#ffb4a8",
+          "secondary-fixed": "#ffdad4", "tertiary": "#ffb4a8", "on-error": "#690005",
+          "on-primary-fixed-variant": "#930000", "on-tertiary": "#621009", "error-container": "#93000a",
+          "on-background": "#e5e1e5", "secondary": "#ffb4a8",
+          "crimson": "#bb0000", "deep-crimson": "#720000"
+        },
+        borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        spacing: {
+          "space-xl": "2.25rem", "margin": "1.25rem", "space-lg": "1.5rem", "space-sm": "0.5rem",
+          "gutter": "1rem", "space-md": "1rem", "space-xs": "0.25rem"
+        },
+        fontFamily: {
+          "display-hero-mobile": ["Plus Jakarta Sans", "Inter", "sans-serif"],
+          "metric-headline": ["Plus Jakarta Sans", "Inter", "sans-serif"],
+          "metric-label": ["Plus Jakarta Sans", "Inter", "sans-serif"],
+          "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+          "display-hero": ["Plus Jakarta Sans", "sans-serif"],
+          "body-sm": ["Plus Jakarta Sans", "sans-serif"],
+          "caption": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+          "numbers": ["Inter", "Plus Jakarta Sans", "sans-serif"]
+        },
+        fontSize: {
+          "display-hero-mobile": ["36px", { lineHeight: "40px", letterSpacing: "-0.03em", fontWeight: "700" }],
+          "metric-headline": ["28px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
+          "metric-label": ["12px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "500" }],
+          "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "headline-lg": ["32px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "600" }],
+          "headline-sm": ["20px", { lineHeight: "26px", letterSpacing: "-0.01em", fontWeight: "600" }],
+          "display-hero": ["48px", { lineHeight: "52px", letterSpacing: "-0.04em", fontWeight: "700" }],
+          "body-sm": ["14px", { lineHeight: "20px", letterSpacing: "0", fontWeight: "400" }],
+          "caption": ["11px", { lineHeight: "14px", letterSpacing: "0.01em", fontWeight: "500" }],
+          "headline-lg-mobile": ["26px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }]
+        }
+      }
+    }
+  };
+</script>
+
+<style>
+  /* ===== Liquid Glass & specular illumination (conservado de los diseños originales) ===== */
+  html { background: #070709; }
+  body {
+    background-color: #070709;
+    color: #e5e1e5;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-height: max(884px, 100dvh);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  .num-figures, .num-lining, .font-metric-headline, .font-metric-label, .font-numbers, [data-num] {
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .glass-surface {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.25);
+  }
+  .glass-panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.22);
+  }
+  .glass-surface-wine {
+    background: linear-gradient(180deg, rgba(45,0,0,0.65) 0%, rgba(20,3,5,0.75) 100%);
+    backdrop-filter: blur(32px) saturate(190%);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    border: 1px solid rgba(114,0,0,0.6);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.2), 0 12px 30px rgba(0,0,0,0.7);
+  }
+  .glass-card-wine {
+    background: linear-gradient(135deg, rgba(114,0,0,0.45) 0%, rgba(20,20,24,0.65) 100%);
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border: 1px solid rgba(187,0,0,0.35);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.25), 0 20px 40px rgba(0,0,0,0.5);
+  }
+  .glass-summary-banner {
+    background: radial-gradient(110% 120% at 50% 0%, rgba(114,0,0,0.45) 0%, rgba(35,10,14,0.6) 65%, rgba(14,14,16,0.85) 100%);
+    backdrop-filter: blur(32px) saturate(190%);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    border: 1px solid rgba(187,0,0,0.38);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.28), 0 16px 36px -10px rgba(114,0,0,0.35);
+  }
+  .liquid-panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 100%), rgba(20,20,24,0.72);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.22);
+  }
+  .liquid-panel-red {
+    background: linear-gradient(180deg, rgba(114,0,0,0.25) 0%, rgba(20,10,12,0.8) 100%);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    box-shadow: inset 0 1px 1px 0 rgba(255,100,100,0.25), 0 10px 25px -5px rgba(114,0,0,0.3);
+  }
+  .liquid-badge {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.15);
+  }
+  .glass-button-active {
+    background: linear-gradient(135deg, #880000 0%, #720000 100%);
+    border: 1px solid rgba(255,180,168,0.3);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.45), 0 4px 20px rgba(136,0,0,0.5);
+  }
+  .btn-liquid-wine {
+    background: linear-gradient(135deg, rgb(187,0,0) 0%, rgb(114,0,0) 100%);
+    box-shadow: inset 0 1px 1.5px 0 rgba(255,255,255,0.25), 0 8px 24px rgba(187,0,0,0.45);
+  }
+  .liquid-red-btn {
+    background: linear-gradient(135deg, #880000 0%, #720000 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(114,0,0,0.55);
+  }
+  .specular-subtle { box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.2); }
+  .crimson-glow { box-shadow: 0 0 24px -2px rgba(114,0,0,0.7); }
+  .hairline-divider { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%); height: 1px; }
+
+  .orb-crimson { background: radial-gradient(circle, rgba(114,0,0,0.38) 0%, rgba(7,7,9,0) 70%); }
+  .orb-wine { background: radial-gradient(circle, rgba(75,0,0,0.5) 0%, rgba(7,7,9,0) 70%); }
+
+  .no-scrollbar::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar, .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24;
+    display: inline-block; vertical-align: middle; line-height: 1;
+    user-select: none;
+  }
+
+  /* ===== Barra inferior global (estilos de Métricas) ===== */
+  .nav-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0.25rem 0.5rem; color: #71717A; position: relative;
+    transition: color .2s, transform .15s;
+  }
+  .nav-btn:hover { color: #fff; }
+  .nav-btn:active { transform: scale(0.9); }
+  .nav-btn .nav-pill {
+    width: 2.5rem; height: 1.75rem; border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; margin-bottom: 0.125rem;
+    transition: background .25s, border-color .25s, box-shadow .25s;
+  }
+  .nav-btn .nav-pill .material-symbols-outlined { font-size: 22px; transition: font-size .2s; }
+  .nav-btn .nav-label { font-size: 11px; font-weight: 500; letter-spacing: -0.025em; }
+  .nav-btn.active { color: #fff; }
+  .nav-btn.active .nav-pill {
+    background: #720000; border-color: rgba(136,0,0,0.7);
+    box-shadow: 0 0 16px rgba(187,0,0,0.55); color: #fff;
+  }
+  .nav-btn.active .nav-pill .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 350, 'GRAD' 0, 'opsz' 24; }
+  .nav-btn.active .nav-label { font-weight: 600; color: #fff; }
+
+  /* ===== Vistas ===== */
+  .view[hidden] { display: none; }
+  .view { animation: viewIn .35s cubic-bezier(.2,.8,.2,1); }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ===== Bottom sheet ===== */
+  #sheetScrim { opacity: 0; pointer-events: none; transition: opacity .3s; }
+  #sheet { transform: translateY(105%); transition: transform .4s cubic-bezier(.2,.8,.2,1); visibility: hidden; }
+  body.sheet-open #sheetScrim { opacity: 1; pointer-events: auto; }
+  body.sheet-open #sheet { transform: none; visibility: visible; }
+  body.sheet-open { overflow: hidden; }
+
+  .chip-on { background: linear-gradient(90deg, rgba(114,0,0,.8), rgba(136,0,0,.6)); border-color: #720000 !important; color: #fff !important; box-shadow: 0 0 14px rgba(114,0,0,.45); }
+  .chip-on .material-symbols-outlined, .chip-on span { color: #fff !important; }
+  .seg-on { background: linear-gradient(90deg, #720000, #880000); color: #fff !important; box-shadow: 0 0 16px rgba(114,0,0,.6); border-top: 1px solid rgba(255,255,255,.3); }
+  .seg-on .material-symbols-outlined { color: #fff !important; }
+
+  .shake { animation: shake .4s; }
+  @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+
+  /* Diálogo de confirmación (#modal-confirm-delete) */
+  #modal-confirm-delete { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1.25rem; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  body.confirm-open #modal-confirm-delete { opacity: 1; pointer-events: auto; }
+  #confirmScrim { position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  #confirmCard { position: relative; width: 100%; max-width: 340px; background: #111116; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 24px; box-shadow: inset 0 1px 1px rgba(255,255,255,.12), 0 20px 60px rgba(0,0,0,.8); transform: scale(.92) translateY(8px); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  /* Modal Presupuesto (#modal-budget) */
+  #modal-budget { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1.25rem; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  body.budget-open #modal-budget { opacity: 1; pointer-events: auto; }
+  #budgetModalScrim { position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  #budgetModalCard { position: relative; width: 100%; max-width: 360px; background: #111116; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 24px; box-shadow: inset 0 1px 1px rgba(255,255,255,.12), 0 20px 60px rgba(0,0,0,.85); transform: scale(.92) translateY(8px); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  body.budget-open #budgetModalCard { transform: none; }
+  #btnSaveBudget { background: linear-gradient(135deg, #880000 0%, #720000 100%); box-shadow: inset 0 1px 1px rgba(255,255,255,.4), 0 8px 24px rgba(114,0,0,.55); }
+
+  #toast { transform: translate(-50%, 20px); opacity: 0; transition: all .3s; pointer-events: none; }
+  #toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  input, button { -webkit-tap-highlight-color: transparent; }
+  input::placeholder { color: rgba(156,163,175,.6); }
+</style>
+</head>
+
+<body class="bg-[#070709] flex justify-center selection:bg-secondary-container selection:text-white">
+
+<!-- Orbes bioluminiscentes de fondo -->
+<div class="fixed inset-0 pointer-events-none z-0 max-w-[440px] mx-auto overflow-hidden" aria-hidden="true">
+  <div class="absolute -top-16 -left-20 w-80 h-80 rounded-full orb-crimson opacity-60 blur-3xl"></div>
+  <div class="absolute top-[320px] -right-24 w-96 h-96 rounded-full orb-wine opacity-60 blur-3xl"></div>
+  <div class="absolute bottom-20 left-4 w-72 h-72 rounded-full orb-crimson opacity-40 blur-2xl"></div>
+</div>
+
+<div class="relative z-10 w-full max-w-[440px] min-h-screen flex flex-col border-x border-white/5" style="padding-bottom: calc(8rem + env(safe-area-inset-bottom));">
+
+  <!-- Header unificado -->
+  <header class="sticky top-0 z-30 flex items-center justify-between px-margin pb-3 bg-[#070709]/70 backdrop-blur-xl" style="padding-top: calc(1.25rem + env(safe-area-inset-top));">
+    <div class="flex flex-col">
+      <div class="flex items-center space-x-2 mb-1">
+        <span class="w-2 h-2 rounded-full bg-[#bb0000] shadow-[0_0_8px_#bb0000] animate-pulse"></span>
+        <span id="hdrDate" class="font-metric-label text-metric-label text-[#9CA3AF] tracking-wider uppercase font-medium">—</span>
+      </div>
+      <h1 id="hdrTitle" class="font-headline-lg-mobile text-headline-lg-mobile text-white tracking-tight font-bold">Patrimonio</h1>
+    </div>
+    <button id="btnHeaderAdd" type="button" aria-label="Nuevo movimiento" class="w-11 h-11 rounded-full glass-surface flex items-center justify-center text-white active:scale-90 transition-transform duration-150">
+      <span class="material-symbols-outlined text-[22px]">add</span>
+    </button>
+  </header>
+
+  <main class="px-margin flex flex-col flex-1">
+
+    <!-- ===================== VISTA: BÓVEDA ===================== -->
+    <div id="view-boveda" class="view flex flex-col gap-5" data-title="Patrimonio">
+      <section class="glass-surface rounded-[28px] p-5 flex flex-col gap-4 relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold tracking-wider uppercase text-[#9CA3AF]">Balance Neto Total</span>
+          <div class="liquid-badge px-2.5 py-1 rounded-full flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span class="text-[11px] text-white font-medium">Bóveda Activa</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-baseline gap-2">
+            <span id="balTotal" class="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm font-numbers">$ 0</span>
+            <span class="text-xs font-semibold text-[#9CA3AF] tracking-wide">COP</span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#bb0000]/20 border border-[#bb0000]/40 text-white">
+              <span id="balTrendIcon" class="material-symbols-outlined text-[15px] text-[#ff9a8a]">trending_up</span>
+              <span id="balPct" class="text-xs font-semibold text-white font-numbers">0%</span>
+              <span class="text-[10px] text-[#9CA3AF]">esta semana</span>
+            </div>
+            <span id="balWeekDelta" class="text-[11px] text-[#9CA3AF] font-medium font-numbers">+$0 COP</span>
+          </div>
+        </div>
+        <div class="w-full pt-1">
+          <div class="h-9 w-full flex items-end">
+            <svg class="w-full h-full overflow-visible" fill="none" viewBox="0 0 320 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="wineGlow" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#bb0000" stop-opacity="0.4"></stop>
+                  <stop offset="100%" stop-color="#bb0000" stop-opacity="0"></stop>
+                </linearGradient>
+              </defs>
+              <path id="sparkArea" d="M0,20 L320,20 L320,40 L0,40 Z" fill="url(#wineGlow)"></path>
+              <path id="sparkLine" d="M0,20 L320,20" stroke="#bb0000" stroke-linecap="round" stroke-width="2.2" vector-effect="non-scaling-stroke"></path>
+              <circle id="sparkDot" cx="320" cy="20" fill="#bb0000" r="3.5" style="filter: drop-shadow(0 0 6px #bb0000);"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-white/[0.07]">
+          <span class="flex items-center gap-1.5 text-[11px] text-[#9CA3AF] font-medium">
+            <span class="material-symbols-outlined text-[14px]">credit_card</span>Tarjeta por pagar
+          </span>
+          <span id="cardDebt" class="text-[13px] text-white font-semibold font-numbers">$ 0</span>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-2 gap-3">
+        <div class="glass-surface rounded-[24px] p-4 flex flex-col justify-between active:scale-[0.98] transition-transform duration-150">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-semibold text-[#9CA3AF] tracking-wide uppercase">Ingresos Mes</span>
+            <div class="w-6 h-6 rounded-full bg-[#10B981]/15 border border-[#10B981]/40 flex items-center justify-center text-[#34D399]">
+              <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+            </div>
+          </div>
+          <div class="flex flex-col">
+            <span id="incMonth" class="text-[17px] text-[#34D399] leading-tight font-bold tracking-tight font-numbers">$ 0</span>
+            <span class="text-[11px] text-[#9CA3AF] mt-1 font-medium">COP · Ingresos del mes</span>
+          </div>
+        </div>
+        <div class="glass-surface rounded-[24px] p-4 flex flex-col justify-between active:scale-[0.98] transition-transform duration-150">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-semibold text-[#9CA3AF] tracking-wide uppercase">Gastos Mes</span>
+            <div class="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#9CA3AF]">
+              <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+            </div>
+          </div>
+          <div class="flex flex-col">
+            <span id="expWeek" class="text-[17px] text-white leading-tight font-bold tracking-tight font-numbers">$ 0</span>
+            <span id="expWeekPct" class="text-[11px] text-[#9CA3AF] mt-1 font-medium">COP · 0% del tope mensual</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Resumen Semanal (Gemini) -->
+      <section class="glass-card-wine rounded-[26px] p-5 relative overflow-hidden flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-[#bb0000]/30 border border-[#bb0000]/50 flex items-center justify-center text-white shadow-sm">
+              <span class="material-symbols-outlined text-[16px] text-white">auto_awesome</span>
+            </div>
+            <h2 class="text-base text-white font-bold tracking-tight">Resumen Semanal</h2>
+          </div>
+          <span id="sumBadge" class="text-[10px] font-semibold text-white uppercase tracking-wider bg-black/40 px-2.5 py-1 rounded-full border border-white/10">Ritmo Óptimo</span>
+        </div>
+        <p id="sumText" class="text-sm text-[#e5e1e5] leading-relaxed pr-1 font-normal"></p>
+        <span id="sumMeta" class="text-[10px] text-[#9CA3AF] -mt-1"></span>
+        <div class="pt-1 flex items-center justify-between">
+          <button id="btnExplore" type="button" class="liquid-badge hover:bg-white/10 active:scale-95 transition-all duration-150 px-4 py-2 rounded-full flex items-center gap-2 text-white text-xs font-semibold border border-white/20">
+            <span id="btnExploreLabel">Actualizar balance</span>
+            <span id="btnExploreIcon" class="material-symbols-outlined text-[15px] text-[#ff9a8a]">arrow_forward</span>
+          </button>
+          <div class="flex -space-x-1.5 items-center font-numbers">
+            <div id="pillTop" class="w-7 h-6 rounded-full bg-[#bb0000] border border-white/20 flex items-center justify-center text-[10px] text-white font-bold">0%</div>
+            <div id="pillRest" class="w-7 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-[10px] text-[#9CA3AF] font-medium">0%</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Movimientos recientes -->
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-base text-white font-bold tracking-tight">Movimientos Recientes</h3>
+            <span class="w-2 h-2 rounded-full bg-[#bb0000]"></span>
+          </div>
+          <button id="btnSeeAll" type="button" class="text-xs text-[#9CA3AF] hover:text-white transition-colors duration-200 font-medium">Ver todos</button>
+        </div>
+        <div id="recentList" class="glass-surface rounded-[24px] p-2 flex flex-col gap-0.5"></div>
+      </section>
+
+      <button id="btnNewMovement" type="button" class="btn-liquid-wine w-full h-14 rounded-full flex items-center justify-center gap-2.5 text-white text-[14px] font-bold tracking-wide active:scale-[0.98] transition-transform duration-150 shadow-lg">
+        <span class="material-symbols-outlined text-[20px]">add_circle</span>
+        <span>+ Nuevo movimiento</span>
+      </button>
+    </div>
+
+    <!-- ===================== VISTA: MÉTRICAS ===================== -->
+    <div id="view-metricas" class="view flex flex-col gap-4" data-title="Métricas de Gastos" hidden>
+      <section class="p-1 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-between backdrop-blur-xl" id="periodSelector">
+        <button type="button" data-period="week" class="period-btn flex-1 py-2 rounded-full text-center font-body-sm text-body-sm font-semibold transition-all">Semana</button>
+        <button type="button" data-period="month" class="period-btn flex-1 py-2 rounded-full text-center font-body-sm text-body-sm font-medium transition-colors duration-150">Mes</button>
+        <button type="button" data-period="semester" class="period-btn flex-1 py-2 rounded-full text-center font-body-sm text-body-sm font-medium transition-colors duration-150">Semestre</button>
+      </section>
+
+      <section class="glass-surface rounded-[26px] p-6 flex flex-col items-center relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-28 h-28 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
+        <div class="relative w-56 h-56 flex items-center justify-center my-2">
+          <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 160 160">
+            <defs>
+              <linearGradient id="liquidCrimson1" x1="0%" x2="100%" y1="0%" y2="100%">
+                <stop offset="0%" stop-color="#880000"></stop><stop offset="100%" stop-color="#720000"></stop>
+              </linearGradient>
+              <linearGradient id="liquidCrimson2" x1="0%" x2="100%" y1="0%" y2="100%">
+                <stop offset="0%" stop-color="#bb0000"></stop><stop offset="100%" stop-color="#550000"></stop>
+              </linearGradient>
+              <filter height="140%" id="softGlow" width="140%" x="-20%" y="-20%">
+                <feGaussianBlur result="blur" stdDeviation="3"></feGaussianBlur>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
+              </filter>
+            </defs>
+            <circle cx="80" cy="80" fill="none" r="62" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>
+            <g id="donutSegs"></g>
+            <circle cx="80" cy="80" fill="none" r="50" stroke="rgba(255,255,255,0.06)" stroke-width="1"></circle>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-4">
+            <span id="mTotalLabel" class="font-metric-label text-metric-label text-[#9CA3AF] tracking-wider uppercase mb-1">COP · Total Semana</span>
+            <span id="mTotal" class="num-figures text-[32px] leading-none text-white tracking-tight font-bold">$ 0</span>
+            <div class="mt-2 flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#880000]"></span>
+              <span id="mDelta" class="num-figures font-metric-label text-[11px] text-white/80 tracking-normal font-medium">0% vs prev.</span>
+            </div>
+          </div>
+        </div>
+        <div class="w-full grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.07] mt-1">
+          <div class="flex flex-col items-start px-2">
+            <span class="font-metric-label text-[11px] text-[#9CA3AF] uppercase font-medium">Promedio Diario</span>
+            <span id="mAvg" class="num-figures text-[18px] text-white tracking-tight mt-0.5 font-semibold">$ 0</span>
+          </div>
+          <div class="flex flex-col items-end px-2">
+            <span class="font-metric-label text-[11px] text-[#9CA3AF] uppercase font-medium">Mayor Impulso</span>
+            <span id="mTop" class="num-figures text-[18px] text-[#ffb4a8] tracking-tight mt-0.5 font-semibold">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="catGrid" class="grid grid-cols-2 gap-3"></section>
+
+      <section class="glass-surface-wine rounded-[24px] p-5 relative overflow-hidden">
+        <div class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-[#880000]/30 blur-2xl pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-7 h-7 rounded-full bg-[#880000]/80 flex items-center justify-center text-white crimson-glow">
+              <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+            </div>
+            <h2 class="text-[16px] text-white font-semibold tracking-tight">Análisis del Asistente</h2>
+          </div>
+          <span class="text-[10px] text-[#ffb4a8] tracking-wider uppercase border border-[#720000] px-2 py-0.5 rounded-full bg-black/40 font-semibold">IA Sintética</span>
+        </div>
+        <p id="aiAnalysis" class="font-body-sm text-body-sm text-white/90 leading-relaxed pr-2"></p>
+        <div class="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between">
+          <div class="flex items-center space-x-1.5">
+            <span class="material-symbols-outlined text-[#ffb4a8] text-[16px]">trending_down</span>
+            <span class="text-[11px] text-[#9CA3AF] font-medium">Objetivo ahorro sugerido:</span>
+          </div>
+          <span id="aiGoal" class="num-figures text-[14px] text-white font-semibold">—</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== VISTA: MOVIMIENTOS ===================== -->
+    <div id="view-movimientos" class="view flex flex-col gap-5" data-title="Movimientos" hidden>
+      <section class="glass-summary-banner rounded-[24px] p-5 relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-[#BB0000]/25 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-[#BB0000] animate-pulse"></span>
+              <span class="text-metric-label font-metric-label text-[#9CA3AF] tracking-wider uppercase">Total Egresos Mes</span>
+            </div>
+            <div class="px-2.5 py-0.5 rounded-full bg-white/[0.08] border border-white/15 text-caption font-caption text-white flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px] text-primary">data_usage</span>
+              <span id="hCount" class="num-lining font-medium">0 movimientos</span>
+            </div>
+          </div>
+          <h2 class="num-lining text-[32px] leading-tight font-bold text-white tracking-tight mt-1">
+            <span id="hTotal">-$ 0</span> <span class="text-base ml-1 text-[#9CA3AF] font-normal">COP</span>
+          </h2>
+          <div class="mt-2 pt-3 border-t border-white/[0.07] flex items-center justify-between text-caption font-caption text-[#9CA3AF]">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-white/70">shield</span>
+              <span id="hBudgetMsg">Presupuesto en rango seguro</span>
+            </div>
+            <span id="hBudgetPct" class="num-lining text-white/90 font-medium text-xs">0% ejecutado</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-3">
+        <div class="relative w-full">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#71717A]">
+            <span class="material-symbols-outlined text-[19px]">search</span>
+          </div>
+          <input id="searchInput" type="search" autocomplete="off" class="w-full h-11 pl-10 pr-4 rounded-full bg-black/40 border border-white/10 text-body-sm font-body-sm text-white placeholder-[#71717A] focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-primary-container/40 transition-all duration-200 backdrop-blur-md" placeholder="Buscar por concepto, monto o categoría..."/>
+        </div>
+        <div id="filterChips" class="flex gap-2 overflow-x-auto no-scrollbar py-1 -mx-margin px-margin">
+          <button type="button" data-filter="all" class="fchip h-8 px-4 rounded-full text-caption font-caption font-medium shrink-0">Todos</button>
+          <button type="button" data-filter="gasto" class="fchip h-8 px-3.5 rounded-full text-caption font-caption font-medium shrink-0">Solo Gastos</button>
+          <button type="button" data-filter="ingreso" class="fchip h-8 px-3.5 rounded-full text-caption font-caption font-medium shrink-0">Solo Ingresos</button>
+          <button type="button" data-filter="antojos" class="fchip h-8 px-3.5 rounded-full text-caption font-caption font-medium shrink-0">Antojos</button>
+          <button type="button" data-filter="credito" class="fchip h-8 px-3.5 rounded-full text-caption font-caption font-medium shrink-0">Tarjeta Crédito</button>
+          <button type="button" data-filter="debito" class="fchip h-8 px-3.5 rounded-full text-caption font-caption font-medium shrink-0">Efectivo / Débito</button>
+        </div>
+      </section>
+
+      <section id="txList" class="flex flex-col gap-5"></section>
+
+      <button id="btnNewTx" type="button" class="btn-liquid-wine w-full h-14 rounded-full flex items-center justify-center gap-2.5 text-white text-[14px] font-bold tracking-wide active:scale-[0.98] transition-transform duration-150 shadow-lg">
+        <span class="material-symbols-outlined text-[20px]">add_circle</span>
+        <span>+ Nueva transacción</span>
+      </button>
+    </div>
+
+    <!-- ===================== VISTA: AJUSTES ===================== -->
+    <div id="view-ajustes" class="view flex flex-col gap-6" data-title="Ajustes" hidden>
+      <section class="flex items-center justify-between pt-1">
+        <p class="text-metric-label font-metric-label text-[#71717A] tracking-wider uppercase">Control de Configuración</p>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#880000] animate-pulse"></span>
+          <span class="text-caption font-caption text-white/90 font-medium num-lining">v1.0 • PWA Local</span>
+        </div>
+      </section>
+
+      <section class="liquid-panel rounded-2xl p-4 border border-outline-variant/30 relative overflow-hidden">
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 flex items-center justify-center shadow-inner">
+            <span class="material-symbols-outlined text-white text-2xl" style="font-variation-settings:'FILL' 1;">shield_lock</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-body-lg font-body-lg font-semibold text-white tracking-tight">Bóveda Personal</span>
+            <span class="text-caption font-caption text-[#9CA3AF]">Modo Offline (Almacenamiento Local)</span>
+          </div>
+        </div>
+        <div class="mt-3.5 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            <span class="text-[#e5e1e5] text-[11px] font-medium tracking-wide">Datos solo en este dispositivo</span>
+          </div>
+          <span id="storageInfo" class="text-[#71717A] text-[11px] num-lining">0 movimientos</span>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Presupuesto y Metas</h2>
+          <span class="text-caption font-caption text-[#71717A]/80">Mensual</span>
+        </div>
+        <div class="flex flex-col rounded-2xl overflow-hidden liquid-panel border border-outline-variant/30">
+          <button id="btnBudget" type="button" class="flex items-center justify-between p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors duration-150 text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90">
+                <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-body-sm font-body-sm text-white font-medium">Presupuesto Mensual</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#720000] shadow-[0_0_6px_#880000]"></span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="budgetLabel" class="num-lining text-[15px] font-semibold text-white tracking-tight">$ 1.200.000 COP</span>
+              <span class="material-symbols-outlined text-[#71717A] text-[18px]">chevron_right</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Inteligencia Artificial</h2>
+          <span class="text-caption font-caption text-[#bb0000] font-semibold num-lining">Gemini 1.5 Flash</span>
+        </div>
+        <div class="liquid-panel-red rounded-2xl p-4 border border-[#720000] flex flex-col gap-4 relative overflow-hidden">
+          <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-[#720000] border border-white/20 flex items-center justify-center shadow-[0_0_12px_rgba(114,0,0,0.8)]">
+                <span class="material-symbols-outlined text-white text-[16px]" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+              </div>
+              <span class="text-caption font-caption uppercase tracking-wider text-white font-bold">IA SINTÉTICA</span>
+            </div>
+            <span id="aiStatus" class="text-caption font-caption px-2 py-0.5 rounded-full bg-black/40 border border-[#720000]/60 text-white/80">Sin clave</span>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="apiKeyInput" class="text-[11px] text-[#9CA3AF] tracking-wider uppercase font-semibold">Google AI Studio API Key</label>
+            <div class="flex items-center gap-2">
+              <div class="relative flex-1 flex items-center bg-black/40 rounded-full border border-white/15 px-3.5 h-11 focus-within:border-white/35 focus-within:shadow-[0_0_16px_rgba(114,0,0,0.35)] transition-all">
+                <span class="material-symbols-outlined text-[#9CA3AF] text-[18px] mr-2">key</span>
+                <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." class="w-full bg-transparent border-0 p-0 text-white text-sm focus:ring-0 focus:outline-none"/>
+                <button id="btnToggleKey" type="button" aria-label="Mostrar u ocultar clave" class="text-[#9CA3AF] hover:text-white ml-1">
+                  <span class="material-symbols-outlined text-[18px]">visibility</span>
+                </button>
+              </div>
+              <button id="btnSaveKey" type="button" class="h-11 px-4 rounded-full bg-white/[0.06] border border-white/20 text-white text-xs font-semibold active:scale-95 transition-transform">Guardar</button>
+            </div>
+            <span class="text-[10px] text-[#71717A] leading-snug">Se guarda solo en tu dispositivo (localStorage). Consíguela gratis en aistudio.google.com.</span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col max-w-[210px]">
+              <span class="text-body-sm font-body-sm font-medium text-white">Diagnóstico Dominical</span>
+              <span class="text-caption font-caption text-[#9CA3AF] mt-0.5 leading-snug">Genera el balance automáticamente los domingos.</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input id="sundayToggle" checked class="sr-only peer" type="checkbox"/>
+              <div class="w-12 h-6 bg-black/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white/20 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-gradient-to-r peer-checked:from-[#720000] peer-checked:to-[#880000] border border-white/10 peer-checked:border-[#ff6464]/40 shadow-[0_0_12px_rgba(114,0,0,0.6)]"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex flex-col">
+              <span class="text-body-sm font-body-sm font-medium text-white">Tono del Asistente</span>
+              <span class="text-caption font-caption text-[#71717A]">Comportamiento analítico</span>
+            </div>
+            <div class="px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/15 text-caption font-caption text-white font-medium tracking-tight">Directo &amp; Constructivo</div>
+          </div>
+
+          <button id="btnGenerate" type="button" class="w-full h-11 mt-1 rounded-full bg-gradient-to-r from-[#720000] to-[#500000] border border-white/25 specular-subtle text-white text-sm font-semibold flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(114,0,0,0.5)]">
+            <span id="btnGenerateIcon" class="material-symbols-outlined text-[17px]">sync</span>
+            <span id="btnGenerateLabel">Generar Balance Manual</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-2.5">
+        <div class="px-1"><h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Datos y Respaldo</h2></div>
+        <div class="flex flex-col rounded-2xl overflow-hidden liquid-panel border border-outline-variant/30 divide-y divide-white/[0.05]">
+          <button id="btnExport" type="button" class="flex items-center justify-between p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors duration-150 text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90"><span class="material-symbols-outlined text-[18px]">cloud_download</span></div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm text-white font-medium">Copia de Seguridad</span>
+                <span class="text-caption font-caption text-[#71717A]">Exportar archivo JSON local</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#720000]/25 border border-[#720000]/50 text-[#ffb4a8] font-medium">Recomendado mensual</span>
+              <span class="material-symbols-outlined text-[#71717A] text-[18px]">chevron_right</span>
+            </div>
+          </button>
+          <button id="btnImport" type="button" class="flex items-center justify-between p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors duration-150 text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90"><span class="material-symbols-outlined text-[18px]">upload</span></div>
+              <span class="text-body-sm font-body-sm text-white font-medium">Importar Datos</span>
+            </div>
+            <span class="material-symbols-outlined text-[#71717A] text-[18px]">chevron_right</span>
+          </button>
+          <input id="fileImport" type="file" accept="application/json,.json" hidden/>
+          <button id="btnReset" type="button" class="flex items-center justify-between p-3.5 hover:bg-red-950/20 active:bg-red-950/40 transition-colors duration-150 text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-[#720000]/20 border border-[#720000]/40 flex items-center justify-center text-[#ffb4a8]"><span class="material-symbols-outlined text-[18px]">delete_forever</span></div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm text-[#ffb4a8] font-medium">Borrar Historial</span>
+                <span class="text-caption font-caption text-[#71717A]">Eliminación irreversible</span>
+              </div>
+            </div>
+            <span class="text-caption font-caption text-[#ffb4a8] font-semibold border-b border-[#720000]/60 pb-0.5">Restablecer Bóveda</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-2.5">
+        <div class="px-1"><h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Cuentas y Orígenes</h2></div>
+        <div class="flex flex-col rounded-2xl overflow-hidden liquid-panel border border-outline-variant/30 divide-y divide-white/[0.05]">
+          <div class="flex items-center justify-between p-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90"><span class="material-symbols-outlined text-[18px]">wallet</span></div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm text-white font-medium">Bóveda (Efectivo / Débito)</span>
+                <span id="accCash" class="text-caption font-caption text-[#71717A] num-lining">Saldo $ 0</span>
+              </div>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-[#10b981]"></span>
+          </div>
+          <div class="flex items-center justify-between p-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90"><span class="material-symbols-outlined text-[18px]">credit_card</span></div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm text-white font-medium">Tarjeta de Crédito</span>
+                <span id="accCard" class="text-caption font-caption text-[#71717A] num-lining">Por pagar $ 0</span>
+              </div>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-[#bb0000]"></span>
+          </div>
+        </div>
+      </section>
+
+      <footer class="flex flex-col items-center justify-center py-4 text-center">
+        <span class="text-metric-label font-metric-label text-[#71717A] tracking-wider text-[11px]">PATRIMONIO • ARQUITECTURA FINANCIERA</span>
+        <span class="text-caption font-caption text-[#71717A]/60 text-[10px] mt-0.5 num-lining">Privacidad por Diseño</span>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== NAVEGACIÓN INFERIOR GLOBAL ===================== -->
+<nav aria-label="Navegación principal" class="fixed bottom-0 left-0 w-full z-40 flex justify-center items-center pointer-events-none [&>*]:pointer-events-auto" style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));">
+  <div class="w-[calc(100%-2.5rem)] max-w-[400px] rounded-full bg-[#1c1b1e]/80 backdrop-blur-2xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.7)] px-4 py-2 flex justify-around items-center">
+    <button type="button" class="nav-btn active" data-tab="boveda" aria-label="Bóveda">
+      <span class="nav-pill"><span class="material-symbols-outlined">account_balance_wallet</span></span>
+      <span class="nav-label">Bóveda</span>
+    </button>
+    <button type="button" class="nav-btn" data-tab="metricas" aria-label="Métricas">
+      <span class="nav-pill"><span class="material-symbols-outlined">query_stats</span></span>
+      <span class="nav-label">Métricas</span>
+    </button>
+    <button type="button" class="nav-btn" data-tab="movimientos" aria-label="Movimientos">
+      <span class="nav-pill"><span class="material-symbols-outlined">swap_horiz</span></span>
+      <span class="nav-label">Movimientos</span>
+    </button>
+    <button type="button" class="nav-btn" data-tab="ajustes" aria-label="Ajustes">
+      <span class="nav-pill"><span class="material-symbols-outlined">tune</span></span>
+      <span class="nav-label">Ajustes</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===================== MODAL: NUEVO MOVIMIENTO (bottom sheet) ===================== -->
+<div id="sheetScrim" class="fixed inset-0 z-50 bg-[#070709]/75 backdrop-blur-[20px]" aria-hidden="true"></div>
+<div class="fixed inset-x-0 bottom-0 z-[60] flex justify-center pointer-events-none">
+  <section id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" class="pointer-events-auto relative w-full max-w-[440px] max-h-[88dvh] bg-gradient-to-b from-[#1c1b1e]/95 via-[#141316]/98 to-[#0e0e10] rounded-t-[36px] border-t border-x border-white/15 shadow-[0_-20px_50px_rgba(0,0,0,0.85)] backdrop-blur-3xl flex flex-col overflow-hidden">
+    <div class="absolute top-0 inset-x-8 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"></div>
+    <div id="sheetHandle" class="w-full flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none">
+      <div class="w-12 h-1.5 rounded-full bg-white/20"></div>
+    </div>
+    <div class="px-margin flex items-center justify-between pb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#880000] shadow-[0_0_8px_#720000]"></span>
+        <h2 id="sheetTitle" class="font-headline-sm text-headline-sm text-white font-semibold tracking-tight">Nuevo Movimiento</h2>
+      </div>
+      <button id="btnCloseSheet" type="button" aria-label="Cerrar" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="txForm" class="flex flex-col min-h-0 flex-1" novalidate>
+      <div class="flex-1 overflow-y-auto hide-scrollbar px-margin space-y-5 pb-6">
+        <!-- Tipo -->
+        <div class="bg-black/40 p-1 rounded-full border border-white/10 flex items-center backdrop-blur-xl" role="group" aria-label="Tipo de movimiento">
+          <button type="button" data-type="gasto" class="type-btn flex-1 py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm font-semibold transition-transform active:scale-95">
+            <span class="material-symbols-outlined text-[16px]">trending_down</span><span>Gasto</span>
+          </button>
+          <button type="button" data-type="ingreso" class="type-btn flex-1 py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm font-medium transition-transform active:scale-95">
+            <span class="material-symbols-outlined text-[16px]">trending_up</span><span>Ingreso</span>
+          </button>
+        </div>
+
+        <!-- Monto -->
+        <div class="flex flex-col items-center justify-center pt-1 pb-2">
+          <label for="amountInput" class="text-metric-label font-metric-label text-[#9CA3AF] tracking-widest uppercase mb-1">MONTO</label>
+          <div class="flex items-baseline justify-center gap-2.5 w-full">
+            <input id="amountInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full min-w-0 bg-transparent border-0 p-0 text-center text-[40px] leading-[48px] font-bold text-white tracking-tighter focus:ring-0 focus:outline-none drop-shadow-[0_0_20px_rgba(136,0,0,0.45)]"/>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/15">COP</span>
+          </div>
+          <div class="flex items-center gap-2 mt-3">
+            <button type="button" data-add="10000" class="px-3.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 text-xs text-[#9CA3AF] hover:text-white transition-all">+10k</button>
+            <button type="button" data-add="50000" class="px-3.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 text-xs text-[#9CA3AF] hover:text-white transition-all">+50k</button>
+            <button type="button" data-add="100000" class="px-3.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 text-xs text-[#9CA3AF] hover:text-white transition-all">+100k</button>
+            <button id="btnClearAmount" type="button" aria-label="Limpiar valor" class="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+              <span class="material-symbols-outlined text-[14px]">backspace</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Concepto -->
+        <div class="space-y-1.5">
+          <label for="noteInput" class="block text-[11px] text-[#9CA3AF] tracking-wider uppercase font-medium">CONCEPTO / NOTA</label>
+          <div class="relative flex items-center bg-black/40 rounded-[20px] border border-white/15 px-3.5 py-2.5 backdrop-blur-xl focus-within:border-white/35 focus-within:shadow-[0_0_16px_rgba(114,0,0,0.35)] transition-all">
+            <span class="material-symbols-outlined text-[#9CA3AF] text-[18px] mr-2.5">edit_note</span>
+            <input id="noteInput" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Helado artesanal, taxi, freelance..." class="w-full bg-transparent border-0 p-0 text-white text-sm focus:ring-0 focus:outline-none tracking-tight"/>
+          </div>
+        </div>
+
+        <!-- Categoría -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] text-[#9CA3AF] tracking-wider uppercase font-medium">CATEGORÍA</span>
+            <span class="text-[11px] text-[#9CA3AF]/70">5 seleccionables</span>
+          </div>
+          <div id="catChips" class="flex items-center gap-2 overflow-x-auto hide-scrollbar -mx-margin px-margin py-1"></div>
+        </div>
+
+        <!-- Origen -->
+        <div id="sourceBlock" class="space-y-2">
+          <span class="text-[11px] text-[#9CA3AF] tracking-wider uppercase font-medium">ORIGEN DE FONDOS</span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" data-source="debito" class="src-btn flex items-center gap-2 p-2.5 rounded-2xl border text-left transition-all active:scale-[0.98]">
+              <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+              <span class="flex flex-col"><span class="text-[10px] uppercase text-[#9CA3AF]">Origen</span><span class="text-xs font-medium text-white">Efectivo / Débito</span></span>
+            </button>
+            <button type="button" data-source="credito" class="src-btn flex items-center gap-2 p-2.5 rounded-2xl border text-left transition-all active:scale-[0.98]">
+              <span class="material-symbols-outlined text-[18px]">credit_card</span>
+              <span class="flex flex-col"><span class="text-[10px] uppercase text-[#9CA3AF]">Origen</span><span class="text-xs font-medium text-white">Tarjeta Crédito</span></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bloque dinámico de Cuotas (Tarjeta Crédito) -->
+        <div id="installmentsBlock" class="space-y-2 transition-all duration-200" hidden>
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] text-[#9CA3AF] tracking-wider uppercase font-medium">NÚMERO DE CUOTAS</span>
+            <span id="installmentDetailText" class="text-[11px] text-[#ffb4a8] font-semibold font-numbers">1 cuota</span>
+          </div>
+          <div id="installmentChips" class="flex items-center gap-2 overflow-x-auto hide-scrollbar -mx-margin px-margin py-1">
+            <button type="button" data-cuotas="1" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border text-xs font-semibold chip-on transition-all active:scale-95">1</button>
+            <button type="button" data-cuotas="3" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white transition-all active:scale-95">3</button>
+            <button type="button" data-cuotas="6" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white transition-all active:scale-95">6</button>
+            <button type="button" data-cuotas="12" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white transition-all active:scale-95">12</button>
+            <button type="button" data-cuotas="24" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white transition-all active:scale-95">24</button>
+            <button type="button" data-cuotas="36" class="cuota-chip flex-shrink-0 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white transition-all active:scale-95">36</button>
+          </div>
+          <p id="installmentBillingInfo" class="text-[10px] text-[#71717A] leading-snug">Corte día 15 · Pago día 3 del mes siguiente</p>
+        </div>
+      </div>
+
+      <div class="px-margin pt-2 border-t border-white/10 bg-gradient-to-t from-[#0e0e10] to-transparent space-y-2" style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));">
+        <button type="submit" class="liquid-red-btn w-full h-14 rounded-[24px] flex items-center justify-center gap-2.5 text-white font-semibold text-base tracking-tight transition-transform active:scale-[0.98]">
+          <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          <span>Guardar Movimiento</span>
+        </button>
+        <button id="btnCancelSheet" type="button" class="w-full py-2 text-center text-sm text-[#9CA3AF] hover:text-white active:scale-95 transition-colors">Cancelar</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Modal Liquid Glass: Presupuesto Mensual -->
+<div id="modal-budget" role="dialog" aria-modal="true" aria-labelledby="budgetModalTitle">
+  <div id="budgetModalScrim"></div>
+  <div id="budgetModalCard" class="text-left flex flex-col gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-[#720000]/30 border border-[#880000]/50 flex items-center justify-center text-white crimson-glow shrink-0">
+        <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+      </div>
+      <div>
+        <h2 id="budgetModalTitle" class="text-base font-bold text-white tracking-tight leading-tight">Presupuesto Mensual</h2>
+        <p class="text-caption font-caption text-[#9CA3AF] mt-0.5">Define tu tope mensual de gasto en COP</p>
+      </div>
+    </div>
+
+    <!-- Campo numérico estilizado con formato COP en tiempo real -->
+    <div class="flex flex-col gap-1.5 mt-1">
+      <label for="budgetInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto Mensual</label>
+      <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-[52px] focus-within:border-[#880000] focus-within:shadow-[0_0_16px_rgba(114,0,0,0.4)] transition-all">
+        <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+        <input id="budgetInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5 w-full mt-2">
+      <button id="btnCancelBudget" type="button" class="h-11 rounded-full bg-white/[0.06] border border-white/15 text-[#e5e1e5] text-xs font-semibold hover:bg-white/10 active:scale-95 transition-all">Cancelar</button>
+      <button id="btnSaveBudget" type="button" class="h-11 rounded-full text-white text-xs font-semibold active:scale-95 transition-all">Guardar Presupuesto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diálogo de confirmación Liquid Glass -->
+<div id="modal-confirm-delete" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDetail">
+  <div id="confirmScrim"></div>
+  <div id="confirmCard" class="text-center flex flex-col items-center">
+    <div class="w-12 h-12 rounded-full bg-[#720000]/30 border border-[#880000]/50 flex items-center justify-center text-[#ffb4a8] mb-3 crimson-glow">
+      <span class="material-symbols-outlined text-[24px]">delete</span>
+    </div>
+    <h2 id="confirmTitle" class="text-lg font-bold text-white tracking-tight">¿Eliminar movimiento?</h2>
+    <p id="confirmDetail" class="text-sm text-[#e5e1e5] mt-2 break-words max-w-full"></p>
+    <p id="confirmAmount" class="num-figures text-lg font-bold mt-1"></p>
+    <div class="grid grid-cols-2 gap-2.5 w-full mt-5">
+      <button id="confirmCancel" type="button" class="h-12 rounded-full bg-white/[0.06] border border-white/15 text-[#e5e1e5] text-sm font-semibold hover:bg-white/10 active:scale-95 transition-all">Cancelar</button>
+      <button id="confirmOk" type="button" class="h-12 rounded-full text-white text-sm font-semibold active:scale-95 transition-transform">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" role="status" aria-live="polite" class="fixed left-1/2 bottom-32 z-[70] max-w-[90%] px-4 py-2.5 rounded-full glass-surface bg-[#1c1b1e]/90 text-white text-xs font-medium text-center"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

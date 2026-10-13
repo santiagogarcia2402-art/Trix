@@ -1,0 +1,22 @@
+{
+  "name": "Patrimonio",
+  "short_name": "Patrimonio",
+  "description": "Finanzas personales con diseño Liquid Glass. Registra gastos e ingresos en COP y recibe un balance semanal con IA.",
+  "lang": "es",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070709",
+  "theme_color": "#070709",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "icons/trixlogo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
