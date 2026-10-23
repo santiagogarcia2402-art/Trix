@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
-<title>Patrimonio · Finanzas personales</title>
-<meta name="description" content="Patrimonio: finanzas personales en COP con diseño Liquid Glass, métricas de gasto y balance de gastos con IA."/>
+<title>Trix · Centro de Control Patrimonial</title>
+<meta name="description" content="Trix: Centro de Control Patrimonial Proactivo con diseño Liquid Glass, métricas y simulador de antojos con IA."/>
 <meta name="theme-color" content="#070709"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" type="image/png" href="icons/trixlogo.png"/>
 <link rel="apple-touch-icon" href="icons/trixlogo.png"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="Patrimonio"/>
+<meta name="apple-mobile-web-app-title" content="Trix"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 
 <!-- Google Fonts & Material Symbols -->
@@ -19,6 +19,9 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Tailwind CSS v3 -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -235,6 +238,34 @@
   body.budget-open #budgetModalCard { transform: none; }
   #btnSaveBudget { background: linear-gradient(135deg, #880000 0%, #720000 100%); box-shadow: inset 0 1px 1px rgba(255,255,255,.4), 0 8px 24px rgba(114,0,0,.55); }
 
+  /* Modales Genéricos Liquid Glass */
+  .app-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1.25rem; opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+  .app-modal.modal-open { opacity: 1; pointer-events: auto; }
+  .app-modal-scrim { position: absolute; inset: 0; background: rgba(7,7,9,0.85); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .app-modal-card { position: relative; width: 100%; max-width: 380px; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, #16151a 0%, #0d0d10 100%); border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; padding: 22px; box-shadow: inset 0 1px 1px rgba(255,255,255,.18), 0 24px 60px rgba(0,0,0,.92); transform: scale(.93) translateY(8px); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  .app-modal.modal-open .app-modal-card { transform: none; }
+
+  /* Barras de avance Liquid Glass */
+  .progress-track { width: 100%; height: 8px; border-radius: 9999px; background: rgba(255,255,255,0.06); overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+  .progress-fill-emerald { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #059669 0%, #10B981 100%); box-shadow: 0 0 10px rgba(16,185,129,0.5); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+  .progress-fill-crimson { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #720000 0%, #bb0000 100%); box-shadow: 0 0 10px rgba(187,0,0,0.5); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+  .progress-fill-violet { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #6D28D9 0%, #8B5CF6 100%); box-shadow: 0 0 10px rgba(139,92,246,0.5); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+
+  .glass-card-emerald {
+    background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(14,14,18,0.7) 100%);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(16,185,129,0.3);
+    box-shadow: inset 0 1px 1px 0 rgba(255,255,255,0.2), 0 12px 30px rgba(0,0,0,0.5);
+  }
+  .glass-card-control {
+    background: radial-gradient(120% 120% at 50% 0%, rgba(114,0,0,0.38) 0%, rgba(19,17,28,0.75) 60%, rgba(7,7,9,0.95) 100%);
+    backdrop-filter: blur(32px) saturate(190%);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 1.5px 0 rgba(255,255,255,0.25), 0 18px 45px rgba(0,0,0,0.7);
+  }
+
   #toast { transform: translate(-50%, 20px); opacity: 0; transition: all .3s; pointer-events: none; }
   #toast.show { transform: translate(-50%, 0); opacity: 1; }
 
@@ -264,7 +295,7 @@
         <span class="w-2 h-2 rounded-full bg-[#bb0000] shadow-[0_0_8px_#bb0000] animate-pulse"></span>
         <span id="hdrDate" class="font-metric-label text-metric-label text-[#9CA3AF] tracking-wider uppercase font-medium">—</span>
       </div>
-      <h1 id="hdrTitle" class="font-headline-lg-mobile text-headline-lg-mobile text-white tracking-tight font-bold">Patrimonio</h1>
+      <h1 id="hdrTitle" class="font-headline-lg-mobile text-headline-lg-mobile text-white tracking-tight font-bold">Trix</h1>
     </div>
     <button id="btnHeaderAdd" type="button" aria-label="Nuevo movimiento" class="w-11 h-11 rounded-full glass-surface flex items-center justify-center text-white active:scale-90 transition-transform duration-150">
       <span class="material-symbols-outlined text-[22px]">add</span>
@@ -274,7 +305,7 @@
   <main class="px-margin flex flex-col flex-1">
 
     <!-- ===================== VISTA: BÓVEDA ===================== -->
-    <div id="view-boveda" class="view flex flex-col gap-5" data-title="Patrimonio">
+    <div id="view-boveda" class="view flex flex-col gap-5" data-title="Trix">
       <section class="glass-surface rounded-[28px] p-5 flex flex-col gap-4 relative overflow-hidden">
         <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
         <div class="flex items-center justify-between">
@@ -321,31 +352,102 @@
         </div>
       </section>
 
-      <section class="grid grid-cols-2 gap-3">
-        <div class="glass-surface rounded-[24px] p-4 flex flex-col justify-between active:scale-[0.98] transition-transform duration-150">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[11px] font-semibold text-[#9CA3AF] tracking-wide uppercase">Ingresos Mes</span>
-            <div class="w-6 h-6 rounded-full bg-[#10B981]/15 border border-[#10B981]/40 flex items-center justify-center text-[#34D399]">
-              <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
-            </div>
+      <!-- ===================== CENTRO DE CONTROL PATRIMONIAL & BURN RATE ===================== -->
+      <section class="glass-card-control rounded-[28px] p-5 flex flex-col gap-4 relative overflow-hidden border border-white/15">
+        <div class="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#ffb4a8]/40 to-transparent"></div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
+            <span class="text-[11px] font-bold tracking-wider uppercase text-white/90">Centro de Control Patrimonial</span>
           </div>
-          <div class="flex flex-col">
-            <span id="incMonth" class="text-[17px] text-[#34D399] leading-tight font-bold tracking-tight font-numbers">$ 0</span>
-            <span class="text-[11px] text-[#9CA3AF] mt-1 font-medium">COP · Ingresos del mes</span>
+          <span id="burnRateBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 text-[#34D399]">Ritmo Saludable 🟢</span>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-[#9CA3AF]">Cupo diario recomendado</span>
+          <div class="flex items-baseline gap-2">
+            <h2 id="dailyAvailable" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow font-numbers">
+              Margen disponible para hoy: $ 0 COP
+            </h2>
+          </div>
+          <span id="dailyRemainingDays" class="text-[11px] text-[#9CA3AF]">Calculado sobre 0 días restantes del mes actual</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/[0.08]">
+          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span class="text-[10px] uppercase font-semibold text-[#9CA3AF]">Ingresos Fijos Mes</span>
+            <span id="burnTotalIngresos" class="text-sm font-bold text-[#34D399] font-numbers mt-0.5">+$ 0 COP</span>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span class="text-[10px] uppercase font-semibold text-[#9CA3AF]">Fijos Operativos Pend.</span>
+            <span id="burnFijosPendientes" class="text-sm font-bold text-[#ffb4a8] font-numbers mt-0.5">-$ 0 COP</span>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span class="text-[10px] uppercase font-semibold text-[#9CA3AF]">Ahorro Mensual Protegido</span>
+            <span id="burnAhorroDestinado" class="text-sm font-bold text-[#C4B5FD] font-numbers mt-0.5">$ 0 COP</span>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span class="text-[10px] uppercase font-semibold text-[#9CA3AF]">Dinero Libre Real Mes</span>
+            <span id="burnMargenLibre" class="text-sm font-bold text-white font-numbers mt-0.5">$ 0 COP</span>
           </div>
         </div>
-        <div class="glass-surface rounded-[24px] p-4 flex flex-col justify-between active:scale-[0.98] transition-transform duration-150">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[11px] font-semibold text-[#9CA3AF] tracking-wide uppercase">Gastos Mes</span>
-            <div class="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#9CA3AF]">
-              <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+
+        <!-- Botón del simulador con Blanco Glow y Letras Negras -->
+        <button id="btnOpenAntojoModal" type="button" class="w-full h-12 rounded-full bg-white text-black font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer" style="background: #FFFFFF; color: #000000; box-shadow: 0 0 20px rgba(255, 255, 255, 0.45), 0 0 40px rgba(255, 255, 255, 0.2);">
+          <span class="material-symbols-outlined text-[19px] text-black" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+          <span class="tracking-wide font-extrabold text-black">¿Me lo compro? (Simulador con IA)</span>
+        </button>
+      </section>
+
+      <!-- ===================== BOLSAS DE GASTOS FIJOS (RECARGAS PARCIALES) ===================== -->
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-[#720000]/30 border border-[#720000]/50 flex items-center justify-center text-white">
+              <span class="material-symbols-outlined text-[14px]">receipt_long</span>
             </div>
+            <h3 class="text-base text-white font-bold tracking-tight">Bolsas de Gastos Fijos</h3>
           </div>
-          <div class="flex flex-col">
-            <span id="expWeek" class="text-[17px] text-white leading-tight font-bold tracking-tight font-numbers">$ 0</span>
-            <span id="expWeekPct" class="text-[11px] text-[#9CA3AF] mt-1 font-medium">COP · 0% del tope mensual</span>
-          </div>
+          <button id="btnNewGastoFijo" type="button" class="px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/10 active:scale-95 border border-white/15 text-xs text-white font-semibold flex items-center gap-1 transition-all">
+            <span class="material-symbols-outlined text-[14px]">add</span>
+            <span>Nuevo Fijo</span>
+          </button>
         </div>
+        <div id="gastosFijosList" class="flex flex-col gap-2.5"></div>
+      </section>
+
+      <!-- ===================== METAS DE AHORRO VISUALES ===================== -->
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-[#10b981]/20 border border-[#10b981]/40 flex items-center justify-center text-[#34D399]">
+              <span class="material-symbols-outlined text-[14px]">savings</span>
+            </div>
+            <h3 class="text-base text-white font-bold tracking-tight">Metas de Ahorro</h3>
+          </div>
+          <button id="btnNewMetaAhorro" type="button" class="px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/10 active:scale-95 border border-white/15 text-xs text-white font-semibold flex items-center gap-1 transition-all">
+            <span class="material-symbols-outlined text-[14px]">add</span>
+            <span>Nueva Meta</span>
+          </button>
+        </div>
+        <div id="metasAhorroList" class="flex flex-col gap-2.5"></div>
+      </section>
+
+      <!-- ===================== INGRESOS FIJOS MENSUALES ===================== -->
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <span class="material-symbols-outlined text-[14px]">payments</span>
+            </div>
+            <h3 class="text-base text-white font-bold tracking-tight">Ingresos Fijos Mensuales</h3>
+          </div>
+          <button id="btnNewIngresoFijo" type="button" class="px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/10 active:scale-95 border border-white/15 text-xs text-white font-semibold flex items-center gap-1 transition-all">
+            <span class="material-symbols-outlined text-[14px]">add</span>
+            <span>+ Ingreso Fijo</span>
+          </button>
+        </div>
+        <div id="ingresosFijosList" class="flex flex-col gap-2"></div>
       </section>
 
       <!-- Resumen Semanal (Gemini) -->
@@ -399,43 +501,78 @@
         <button type="button" data-period="semester" class="period-btn flex-1 py-2 rounded-full text-center font-body-sm text-body-sm font-medium transition-colors duration-150">Semestre</button>
       </section>
 
-      <section class="glass-surface rounded-[26px] p-6 flex flex-col items-center relative overflow-hidden">
-        <div class="absolute -top-10 -right-10 w-28 h-28 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
-        <div class="relative w-56 h-56 flex items-center justify-center my-2">
-          <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 160 160">
-            <defs>
-              <linearGradient id="liquidCrimson1" x1="0%" x2="100%" y1="0%" y2="100%">
-                <stop offset="0%" stop-color="#880000"></stop><stop offset="100%" stop-color="#720000"></stop>
-              </linearGradient>
-              <linearGradient id="liquidCrimson2" x1="0%" x2="100%" y1="0%" y2="100%">
-                <stop offset="0%" stop-color="#bb0000"></stop><stop offset="100%" stop-color="#550000"></stop>
-              </linearGradient>
-              <filter height="140%" id="softGlow" width="140%" x="-20%" y="-20%">
-                <feGaussianBlur result="blur" stdDeviation="3"></feGaussianBlur>
-                <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
-              </filter>
-            </defs>
-            <circle cx="80" cy="80" fill="none" r="62" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>
-            <g id="donutSegs"></g>
-            <circle cx="80" cy="80" fill="none" r="50" stroke="rgba(255,255,255,0.06)" stroke-width="1"></circle>
-          </svg>
+      <!-- ===================== GRÁFICA 1: DONA / ANILLO ESTILIZADO ===================== -->
+      <section class="glass-surface rounded-[26px] p-5 flex flex-col items-center relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-28 h-28 bg-[#720000]/15 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="w-full flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
+            <h2 class="text-xs font-bold text-white uppercase tracking-wider">Distribución de Gastos por Categoría</h2>
+          </div>
+          <span class="text-[10px] text-[#9CA3AF] bg-white/[0.04] px-2 py-0.5 rounded-full border border-white/10 font-medium">Liquid Glass</span>
+        </div>
+
+        <div class="relative w-full h-64 flex items-center justify-center my-1">
+          <canvas id="chartGastosCat" class="w-full h-full max-h-64"></canvas>
           <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-4">
             <span id="mTotalLabel" class="font-metric-label text-metric-label text-[#9CA3AF] tracking-wider uppercase mb-1">COP · Total Semana</span>
-            <span id="mTotal" class="num-figures text-[32px] leading-none text-white tracking-tight font-bold">$ 0</span>
+            <span id="mTotal" class="num-figures text-[28px] sm:text-[32px] leading-none text-white tracking-tight font-bold">$ 0</span>
             <div class="mt-2 flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-              <span class="w-1.5 h-1.5 rounded-full bg-[#880000]"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[#720000]"></span>
               <span id="mDelta" class="num-figures font-metric-label text-[11px] text-white/80 tracking-normal font-medium">0% vs prev.</span>
             </div>
           </div>
         </div>
+
         <div class="w-full grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.07] mt-1">
           <div class="flex flex-col items-start px-2">
             <span class="font-metric-label text-[11px] text-[#9CA3AF] uppercase font-medium">Promedio Diario</span>
-            <span id="mAvg" class="num-figures text-[18px] text-white tracking-tight mt-0.5 font-semibold">$ 0</span>
+            <span id="mAvg" class="num-figures text-[17px] text-white tracking-tight mt-0.5 font-semibold">$ 0</span>
           </div>
           <div class="flex flex-col items-end px-2">
             <span class="font-metric-label text-[11px] text-[#9CA3AF] uppercase font-medium">Mayor Impulso</span>
-            <span id="mTop" class="num-figures text-[18px] text-[#ffb4a8] tracking-tight mt-0.5 font-semibold">—</span>
+            <span id="mTop" class="num-figures text-[17px] text-[#ffb4a8] tracking-tight mt-0.5 font-semibold">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== GRÁFICA 2: COMPARATIVA DE BALANCE & FLUJO ===================== -->
+      <section class="glass-surface rounded-[26px] p-5 flex flex-col gap-3 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-[#10b981]/20 border border-[#10b981]/40 flex items-center justify-center text-[#34D399]">
+              <span class="material-symbols-outlined text-[14px]">stacked_bar_chart</span>
+            </div>
+            <h2 class="text-xs font-bold text-white uppercase tracking-wider">Comparativa: Ingresos vs Fijos vs Variables</h2>
+          </div>
+          <span class="text-[10px] text-[#10B981] bg-[#10B981]/15 px-2 py-0.5 rounded-full font-semibold border border-[#10B981]/30">Flujo Real</span>
+        </div>
+
+        <div class="relative w-full h-44">
+          <canvas id="chartBalanceComparativa" class="w-full h-full"></canvas>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/[0.07]">
+          <div class="flex flex-col p-2 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+              <span class="text-[10px] text-[#9CA3AF] uppercase font-semibold">Ingresos</span>
+            </div>
+            <span id="mbTotalIngresos" class="text-xs sm:text-[13px] font-bold text-[#34D399] font-numbers mt-1">$ 0</span>
+          </div>
+          <div class="flex flex-col p-2 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#720000]"></span>
+              <span class="text-[10px] text-[#9CA3AF] uppercase font-semibold">Fijos Cub.</span>
+            </div>
+            <span id="mbFijosCubiertos" class="text-xs sm:text-[13px] font-bold text-[#ffb4a8] font-numbers mt-1">$ 0</span>
+          </div>
+          <div class="flex flex-col p-2 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#8B5CF6]"></span>
+              <span class="text-[10px] text-[#9CA3AF] uppercase font-semibold">Variables</span>
+            </div>
+            <span id="mbGastosVariables" class="text-xs sm:text-[13px] font-bold text-[#C4B5FD] font-numbers mt-1">$ 0</span>
           </div>
         </div>
       </section>
@@ -573,7 +710,7 @@
       <section class="flex flex-col gap-2.5">
         <div class="flex items-center justify-between px-1">
           <h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Inteligencia Artificial</h2>
-          <span class="text-caption font-caption text-[#bb0000] font-semibold num-lining">Gemini 1.5 Flash</span>
+          <span class="text-caption font-caption text-[#bb0000] font-semibold num-lining">Gemini 3.8 Flash</span>
         </div>
         <div class="liquid-panel-red rounded-2xl p-4 border border-[#720000] flex flex-col gap-4 relative overflow-hidden">
           <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
@@ -581,7 +718,7 @@
               <div class="w-7 h-7 rounded-lg bg-[#720000] border border-white/20 flex items-center justify-center shadow-[0_0_12px_rgba(114,0,0,0.8)]">
                 <span class="material-symbols-outlined text-white text-[16px]" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
               </div>
-              <span class="text-caption font-caption uppercase tracking-wider text-white font-bold">IA SINTÉTICA</span>
+              <span class="text-caption font-caption uppercase tracking-wider text-white font-bold">IA SINTÉTICA (Gemini 3.8 Flash)</span>
             </div>
             <span id="aiStatus" class="text-caption font-caption px-2 py-0.5 rounded-full bg-black/40 border border-[#720000]/60 text-white/80">Sin clave</span>
           </div>
@@ -598,7 +735,7 @@
               </div>
               <button id="btnSaveKey" type="button" class="h-11 px-4 rounded-full bg-white/[0.06] border border-white/20 text-white text-xs font-semibold active:scale-95 transition-transform">Guardar</button>
             </div>
-            <span class="text-[10px] text-[#71717A] leading-snug">Se guarda solo en tu dispositivo (localStorage). Consíguela gratis en aistudio.google.com.</span>
+            <span class="text-[10px] text-[#71717A] leading-snug">Se guarda de forma segura en tu navegador (localStorage: gemini_api_key). Consíguela gratis en aistudio.google.com.</span>
           </div>
 
           <div class="flex items-center justify-between">
@@ -630,16 +767,18 @@
       <section class="flex flex-col gap-2.5">
         <div class="px-1"><h2 class="text-metric-label font-metric-label tracking-widest text-[#71717A] uppercase font-semibold">Datos y Respaldo</h2></div>
         <div class="flex flex-col rounded-2xl overflow-hidden liquid-panel border border-outline-variant/30 divide-y divide-white/[0.05]">
-          <button id="btnExport" type="button" class="flex items-center justify-between p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors duration-150 text-left">
+          <button id="btnExport" type="button" class="flex items-center justify-between p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors duration-150 text-left bg-gradient-to-r from-[#10B981]/10 via-transparent to-transparent">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/90"><span class="material-symbols-outlined text-[18px]">cloud_download</span></div>
+              <div class="w-9 h-9 rounded-xl bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#34D399] shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                <span class="material-symbols-outlined text-[20px]">download</span>
+              </div>
               <div class="flex flex-col">
-                <span class="text-body-sm font-body-sm text-white font-medium">Copia de Seguridad</span>
-                <span class="text-caption font-caption text-[#71717A]">Exportar archivo JSON local</span>
+                <span class="text-body-sm font-body-sm text-white font-bold">Respaldar Historial (Exportar JSON)</span>
+                <span class="text-caption font-caption text-[#9CA3AF]">Descargar copia preventiva de todos tus registros</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#720000]/25 border border-[#720000]/50 text-[#ffb4a8] font-medium">Recomendado mensual</span>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 text-[#34D399] font-semibold">Exportar</span>
               <span class="material-symbols-outlined text-[#71717A] text-[18px]">chevron_right</span>
             </div>
           </button>
@@ -691,7 +830,7 @@
       </section>
 
       <footer class="flex flex-col items-center justify-center py-4 text-center">
-        <span class="text-metric-label font-metric-label text-[#71717A] tracking-wider text-[11px]">PATRIMONIO • ARQUITECTURA FINANCIERA</span>
+        <span class="text-metric-label font-metric-label text-[#71717A] tracking-wider text-[11px]">TRIX • ARQUITECTURA FINANCIERA</span>
         <span class="text-caption font-caption text-[#71717A]/60 text-[10px] mt-0.5 num-lining">Privacidad por Diseño</span>
       </footer>
     </div>
@@ -873,6 +1012,344 @@
       <button id="confirmCancel" type="button" class="h-12 rounded-full bg-white/[0.06] border border-white/15 text-[#e5e1e5] text-sm font-semibold hover:bg-white/10 active:scale-95 transition-all">Cancelar</button>
       <button id="confirmOk" type="button" class="h-12 rounded-full text-white text-sm font-semibold active:scale-95 transition-transform">Eliminar</button>
     </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: SIMULADOR DE ANTOJOS CON GEMINI 3.8 FLASH ===================== -->
+<div id="modal-antojo" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="antojoModalTitle">
+  <div class="app-modal-scrim" id="antojoModalScrim"></div>
+  <div class="app-modal-card max-h-[90vh] overflow-y-auto text-left flex flex-col gap-4 border border-[#8B5CF6]/30 shadow-[0_0_40px_rgba(139,92,246,0.2)]">
+    <div class="flex items-center justify-between sticky top-0 bg-[#16151a]/95 backdrop-blur-md z-10 py-1 -mt-1 border-b border-white/5">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center text-[#C4B5FD] shadow-[0_0_14px_rgba(139,92,246,0.5)]">
+          <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+        </div>
+        <div>
+          <h2 id="antojoModalTitle" class="text-base font-bold text-white tracking-tight leading-tight">¿Me lo compro?</h2>
+          <p class="text-caption font-caption text-[#9CA3AF]">Simulador de impacto con Gemini 3.8 Flash</p>
+        </div>
+      </div>
+      <button id="btnCloseAntojoModal" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Inputs -->
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-1">
+        <label for="antojoMontoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto del Antojo</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-white focus-within:shadow-[0_0_16px_rgba(255,255,255,0.2)] transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="antojoMontoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <button type="button" data-antojo-add="5000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10 active:scale-95 transition-transform">+5k</button>
+          <button type="button" data-antojo-add="10000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10 active:scale-95 transition-transform">+10k</button>
+          <button type="button" data-antojo-add="25000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10 active:scale-95 transition-transform">+25k</button>
+          <button type="button" data-antojo-add="50000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10 active:scale-95 transition-transform">+50k</button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="antojoConceptoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Concepto / Antojo</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-11 focus-within:border-white transition-all">
+          <input id="antojoConceptoInput" type="text" autocomplete="off" placeholder="Ej. Helado artesanal, café, ropa..." class="w-full bg-transparent border-0 p-0 text-sm font-medium text-white placeholder-[#71717A] focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impacto Financiero en tiempo real -->
+    <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-[#9CA3AF]">Cupo diario hoy (antes):</span>
+        <span id="antojoCupoAntes" class="font-bold text-white font-numbers">$ 0 COP</span>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-[#9CA3AF]">Cupo diario hoy (después):</span>
+        <span id="antojoCupoDespues" class="font-bold text-[#ffb4a8] font-numbers">$ 0 COP</span>
+      </div>
+      <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-white/5 text-[#71717A]">
+        <span>Días restantes del mes:</span>
+        <span id="antojoDiasRestantes" class="text-white/80 font-medium font-numbers">0 días</span>
+      </div>
+    </div>
+
+    <!-- Botón de Consulta: Blanco Glow con Letras Negras -->
+    <button id="btnConsultarAntojo" type="button" class="w-full h-12 rounded-full bg-white text-black font-semibold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer" style="box-shadow: 0 0 20px rgba(255, 255, 255, 0.45), 0 0 40px rgba(255, 255, 255, 0.2); background: #FFFFFF; color: #000000;">
+      <span id="antojoConsultarIcon" class="material-symbols-outlined text-[19px] text-black">psychology</span>
+      <span id="antojoConsultarLabel" class="font-bold text-black tracking-wide">Consultar a Gemini 3.8 Flash</span>
+    </button>
+
+    <!-- Contenedor dedicado de respuesta DENTRO del modal activo -->
+    <div id="resultado-simulador-ia" class="flex flex-col gap-3 transition-all min-h-[10px]"></div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ABONAR A GASTO FIJO ===================== -->
+<div id="modal-abonar-fijo" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="abonarFijoTitle">
+  <div class="app-modal-scrim" id="abonarFijoScrim"></div>
+  <div class="app-modal-card text-left flex flex-col gap-4 border border-[#720000]/40">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-[#720000]/30 border border-[#720000]/50 flex items-center justify-center text-[#ffb4a8] crimson-glow">
+          <span class="material-symbols-outlined text-[20px]">add_card</span>
+        </div>
+        <div>
+          <h2 id="abonarFijoTitle" class="text-base font-bold text-white tracking-tight leading-tight">Abonar a Gasto Fijo</h2>
+          <p id="abonarFijoSub" class="text-caption font-caption text-[#9CA3AF]">Recarga parcial de compromiso</p>
+        </div>
+      </div>
+      <button id="btnCloseAbonarFijo" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Progreso actual -->
+    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-1.5">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-[#9CA3AF]">Estado actual:</span>
+        <span id="abonarFijoProgresoText" class="font-bold text-white font-numbers">$ 0 / $ 0 COP</span>
+      </div>
+      <div class="progress-track">
+        <div id="abonarFijoProgressBar" class="progress-fill-crimson" style="width: 0%;"></div>
+      </div>
+      <span id="abonarFijoPendienteText" class="text-[11px] text-[#ffb4a8] text-right font-numbers">Faltan $ 0 COP</span>
+    </div>
+
+    <!-- Input Monto Abono -->
+    <div class="flex flex-col gap-1.5">
+      <label for="abonarMontoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto a Abonar</label>
+      <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-[#bb0000] transition-all">
+        <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+        <input id="abonarMontoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+      </div>
+      <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        <button type="button" data-abono-add="10000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+10k</button>
+        <button type="button" data-abono-add="20000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+20k</button>
+        <button type="button" data-abono-add="50000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+50k</button>
+        <button id="btnAbonarRestante" type="button" class="px-2.5 py-1 rounded-full bg-[#720000]/30 hover:bg-[#720000]/50 text-[11px] text-[#ffb4a8] border border-[#720000]/60 font-semibold">Cubrir Restante</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5 pt-2">
+      <button id="btnCancelAbonarFijo" type="button" class="h-11 rounded-full bg-white/[0.06] border border-white/15 text-[#e5e1e5] text-xs font-semibold hover:bg-white/10 active:scale-95 transition-all">Cancelar</button>
+      <button id="btnConfirmAbonarFijo" type="button" class="h-11 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">check</span>
+        <span>Confirmar Abono</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CREAR / EDITAR GASTO FIJO ===================== -->
+<div id="modal-form-fijo" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="formFijoTitle">
+  <div class="app-modal-scrim" id="formFijoScrim"></div>
+  <div class="app-modal-card text-left flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-[#720000]/30 border border-[#720000]/50 flex items-center justify-center text-white">
+          <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+        </div>
+        <div>
+          <h2 id="formFijoTitle" class="text-base font-bold text-white tracking-tight leading-tight">Nuevo Compromiso Fijo</h2>
+          <p class="text-caption font-caption text-[#9CA3AF]">Define tu meta mensual a cubrir</p>
+        </div>
+      </div>
+      <button id="btnCloseFormFijo" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="formGastoFijo" class="flex flex-col gap-3" novalidate>
+      <input type="hidden" id="fijoIdInput" value=""/>
+      <div class="flex flex-col gap-1">
+        <label for="fijoNombreInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Nombre del Compromiso</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-11 focus-within:border-[#bb0000] transition-all">
+          <input id="fijoNombreInput" type="text" autocomplete="off" placeholder="Ej. Transporte Tullave, Spotify, Arriendo..." class="w-full bg-transparent border-0 p-0 text-sm font-medium text-white placeholder-[#71717A] focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="fijoProyectadoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto Proyectado Mensual</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-[#bb0000] transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="fijoProyectadoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-2">
+        <button id="btnDeleteFijo" type="button" class="h-11 rounded-full bg-red-950/30 border border-red-800/40 text-[#ffb4a8] text-xs font-semibold hover:bg-red-900/40 active:scale-95 transition-all" hidden>Eliminar</button>
+        <button id="btnSaveFijo" type="submit" class="h-11 col-span-2 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all">Guardar Compromiso</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: APORTAR A META DE AHORRO ===================== -->
+<div id="modal-aportar-meta" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="aportarMetaTitle">
+  <div class="app-modal-scrim" id="aportarMetaScrim"></div>
+  <div class="app-modal-card text-left flex flex-col gap-4 border border-[#10B981]/40">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-[#10b981]/20 border border-[#10b981]/40 flex items-center justify-center text-[#34D399]">
+          <span class="material-symbols-outlined text-[20px]">savings</span>
+        </div>
+        <div>
+          <h2 id="aportarMetaTitle" class="text-base font-bold text-white tracking-tight leading-tight">Aportar a Meta</h2>
+          <p id="aportarMetaSub" class="text-caption font-caption text-[#9CA3AF]">Transferir saldo a tu objetivo</p>
+        </div>
+      </div>
+      <button id="btnCloseAportarMeta" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Progreso actual -->
+    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-1.5">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-[#9CA3AF]">Acumulado:</span>
+        <span id="aportarMetaProgresoText" class="font-bold text-white font-numbers">$ 0 / $ 0 COP</span>
+      </div>
+      <div class="progress-track">
+        <div id="aportarMetaProgressBar" class="progress-fill-emerald" style="width: 0%;"></div>
+      </div>
+      <span id="aportarMetaRestanteText" class="text-[11px] text-[#34D399] text-right font-numbers">Faltan $ 0 COP</span>
+    </div>
+
+    <!-- Input Monto Aporte -->
+    <div class="flex flex-col gap-1.5">
+      <label for="aporteMontoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto del Aporte</label>
+      <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-[#10b981] transition-all">
+        <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+        <input id="aporteMontoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+      </div>
+      <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        <button type="button" data-aporte-add="20000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+20k</button>
+        <button type="button" data-aporte-add="50000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+50k</button>
+        <button type="button" data-aporte-add="100000" class="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 text-[11px] text-[#9CA3AF] hover:text-white border border-white/10">+100k</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5 pt-2">
+      <button id="btnCancelAportarMeta" type="button" class="h-11 rounded-full bg-white/[0.06] border border-white/15 text-[#e5e1e5] text-xs font-semibold hover:bg-white/10 active:scale-95 transition-all">Cancelar</button>
+      <button id="btnConfirmAportarMeta" type="button" class="h-11 rounded-full bg-gradient-to-r from-[#059669] to-[#10B981] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-[0_4px_16px_rgba(16,185,129,0.4)]">
+        <span class="material-symbols-outlined text-[16px]">check</span>
+        <span>Confirmar Aporte</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CREAR / EDITAR META DE AHORRO ===================== -->
+<div id="modal-form-meta" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="formMetaTitle">
+  <div class="app-modal-scrim" id="formMetaScrim"></div>
+  <div class="app-modal-card text-left flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-[#10b981]/20 border border-[#10b981]/40 flex items-center justify-center text-[#34D399]">
+          <span class="material-symbols-outlined text-[20px]">savings</span>
+        </div>
+        <div>
+          <h2 id="formMetaTitle" class="text-base font-bold text-white tracking-tight leading-tight">Nueva Meta de Ahorro</h2>
+          <p class="text-caption font-caption text-[#9CA3AF]">Objetivo patrimonial visual</p>
+        </div>
+      </div>
+      <button id="btnCloseFormMeta" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="formMetaAhorro" class="flex flex-col gap-3" novalidate>
+      <input type="hidden" id="metaIdInput" value=""/>
+      <div class="flex flex-col gap-1">
+        <label for="metaNombreInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Nombre del Objetivo</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-11 focus-within:border-[#10b981] transition-all">
+          <input id="metaNombreInput" type="text" autocomplete="off" placeholder="Ej. Fondo de emergencia, Setup, Viaje..." class="w-full bg-transparent border-0 p-0 text-sm font-medium text-white placeholder-[#71717A] focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="metaObjetivoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto Objetivo</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-[#10b981] transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="metaObjetivoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="metaAporteMensualInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Aporte mensual planeado (Compromiso sagrado)</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-[#10b981] transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="metaAporteMensualInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+        <span class="text-[10px] text-[#71717A] leading-snug">Se sumará a tus compromisos fijos del mes para proteger tu ahorro sagrado.</span>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="metaInicialInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto Ahorrado Inicial / Acumulado</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-11 focus-within:border-[#10b981] transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="metaInicialInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-sm font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-2">
+        <button id="btnDeleteMeta" type="button" class="h-11 rounded-full bg-red-950/30 border border-red-800/40 text-[#ffb4a8] text-xs font-semibold hover:bg-red-900/40 active:scale-95 transition-all" hidden>Eliminar</button>
+        <button id="btnSaveMeta" type="submit" class="h-11 col-span-2 rounded-full bg-gradient-to-r from-[#059669] to-[#10B981] text-white text-xs font-bold active:scale-95 transition-all shadow-[0_4px_16px_rgba(16,185,129,0.4)]">Guardar Meta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CREAR / EDITAR INGRESO FIJO ===================== -->
+<div id="modal-form-ingreso" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="formIngresoTitle">
+  <div class="app-modal-scrim" id="formIngresoScrim"></div>
+  <div class="app-modal-card text-left flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+          <span class="material-symbols-outlined text-[20px]">payments</span>
+        </div>
+        <div>
+          <h2 id="formIngresoTitle" class="text-base font-bold text-white tracking-tight leading-tight">Ingreso Fijo Mensual</h2>
+          <p class="text-caption font-caption text-[#9CA3AF]">Salario o entrada recurrente mensual</p>
+        </div>
+      </div>
+      <button id="btnCloseFormIngreso" type="button" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="formIngresoFijo" class="flex flex-col gap-3" novalidate>
+      <input type="hidden" id="ingresoIdInput" value=""/>
+      <div class="flex flex-col gap-1">
+        <label for="ingresoNombreInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Concepto / Fuente</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-11 focus-within:border-emerald-500 transition-all">
+          <input id="ingresoNombreInput" type="text" autocomplete="off" placeholder="Ej. Salario mensual, Honorarios..." class="w-full bg-transparent border-0 p-0 text-sm font-medium text-white placeholder-[#71717A] focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="ingresoMontoInput" class="text-[10px] font-metric-label tracking-widest text-[#9CA3AF] uppercase font-semibold">Monto Mensual</label>
+        <div class="relative flex items-center bg-black/50 rounded-2xl border border-white/15 px-4 h-12 focus-within:border-emerald-500 transition-all">
+          <span class="text-sm font-semibold text-[#9CA3AF] mr-2">COP</span>
+          <input id="ingresoMontoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="$ 0" class="num-figures w-full bg-transparent border-0 p-0 text-xl font-bold text-white tracking-tight focus:ring-0 focus:outline-none"/>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10 cursor-pointer select-none hover:bg-white/[0.07] transition-all">
+        <input id="ingresoIniciarCicloCheckbox" type="checkbox" class="w-4 h-4 rounded text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-black/60 border-white/20"/>
+        <div class="flex flex-col">
+          <span class="text-xs text-white font-semibold">Marcar como recibido hoy e iniciar ciclo de 30 días</span>
+          <span class="text-[10px] text-[#9CA3AF]">Reinicia las bolsas fijas a $0 y recalcula el cupo diario para los próximos 30 días.</span>
+        </div>
+      </label>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-2">
+        <button id="btnDeleteIngreso" type="button" class="h-11 rounded-full bg-red-950/30 border border-red-800/40 text-[#ffb4a8] text-xs font-semibold hover:bg-red-900/40 active:scale-95 transition-all" hidden>Eliminar</button>
+        <button id="btnSaveIngreso" type="submit" class="h-11 col-span-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-xs font-bold active:scale-95 transition-all shadow-[0_4px_16px_rgba(16,185,129,0.4)]">Guardar Ingreso Fijo</button>
+      </div>
+    </form>
   </div>
 </div>
 
