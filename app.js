@@ -62,26 +62,72 @@
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { toast('No se pudo guardar en el almacenamiento local'); }
   }
 
-  /* ==================== CRÍTICO: PERSISTENCIA SEGURA DE DATOS ==================== */
+  /* ==================== CRÍTICO: PERSISTENCIA SEGURA Y NORMALIZACIÓN DE DATOS ==================== */
+  function normalizeTx(t) {
+    if (!t) return null;
+    const amount = Number(t.amount !== undefined ? t.amount : (t.monto !== undefined ? t.monto : 0));
+    if (isNaN(amount) || amount <= 0) return null;
+
+    const type = (t.type || t.tipo || 'gasto').toLowerCase();
+    let category = (t.category || t.categoria || 'antojos').toLowerCase();
+    if (category === 'fijo' || category === 'fijos') category = 'fijos';
+    if (!CATEGORIES[category]) category = 'antojos';
+    const source = (t.source || t.origen || 'debito').toLowerCase() === 'credito' ? 'credito' : 'debito';
+    const note = String(t.note || t.nota || t.descripcion || t.concepto || CATEGORIES[category].label).slice(0, 60);
+
+    let ts = Date.now();
+    if (t.ts) {
+      ts = typeof t.ts === 'number' ? t.ts : new Date(t.ts).getTime();
+    } else if (t.fecha) {
+      ts = new Date(t.fecha).getTime();
+    }
+    if (isNaN(ts)) ts = Date.now();
+
+    const cuotas = Number(t.cuotas) || 1;
+    const valorCuota = Number(t.valorCuota) || (cuotas > 1 ? Math.round(amount / cuotas) : amount);
+
+    return {
+      id: t.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      type,
+      tipo: type,
+      amount,
+      monto: amount,
+      category,
+      categoria: category === 'fijos' ? 'Fijos' : (CATEGORIES[category]?.label || category),
+      source,
+      origen: source,
+      note,
+      nota: note,
+      cuotas,
+      valorCuota,
+      diaCorte: t.diaCorte || 15,
+      diaPago: t.diaPago || 3,
+      ts
+    };
+  }
+
   function loadInitialTxs() {
+    let raw = [];
     try {
       const rawLegacy = localStorage.getItem('movimientos');
       if (rawLegacy) {
         const parsed = JSON.parse(rawLegacy);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
       }
     } catch {}
-    try {
-      const rawPat = localStorage.getItem('patrimonio.movimientos');
-      if (rawPat) {
-        const parsed = JSON.parse(rawPat);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return [];
+    if (!raw.length) {
+      try {
+        const rawPat = localStorage.getItem('patrimonio.movimientos');
+        if (rawPat) {
+          const parsed = JSON.parse(rawPat);
+          if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
+        }
+      } catch {}
+    }
+    return raw.map(normalizeTx).filter(Boolean);
   }
 
-  let txs = loadInitialTxs().filter((t) => t && t.amount > 0).map((t) => ({ ...t, ts: new Date(t.ts).getTime() }));
+  let txs = loadInitialTxs();
 
   // Fallbacks seguros sin tocar lo que el usuario ya registró
   let ingresos_fijos = JSON.parse(localStorage.getItem('ingresos_fijos')) || [];
@@ -89,17 +135,43 @@
   let metas_ahorro = JSON.parse(localStorage.getItem('metas_ahorro')) || [];
 
   function saveIngresosFijos() {
-    localStorage.setItem('ingresos_fijos', JSON.stringify(ingresos_fijos));
+    const normalized = ingresos_fijos.map((item) => {
+      const val = Number(item.montoMensual !== undefined ? item.montoMensual : (item.monto !== undefined ? item.monto : 0));
+      return { ...item, monto: val, montoMensual: val };
+    });
+    localStorage.setItem('ingresos_fijos', JSON.stringify(normalized));
   }
   function saveGastosFijos() {
     localStorage.setItem('gastos_fijos', JSON.stringify(gastos_fijos));
   }
   function saveMetasAhorro() {
-    localStorage.setItem('metas_ahorro', JSON.stringify(metas_ahorro));
+    const normalized = metas_ahorro.map((item) => {
+      const aporte = Number(item.aportePlaneado !== undefined ? item.aportePlaneado : (item.aporteMensualPlaneado !== undefined ? item.aporteMensualPlaneado : 0));
+      const ahorrado = Number(item.montoAhorrado !== undefined ? item.montoAhorrado : (item.montoActual !== undefined ? item.montoActual : 0));
+      const obj = Number(item.montoObjetivo !== undefined ? item.montoObjetivo : (item.objetivo !== undefined ? item.objetivo : 0));
+      return {
+        ...item,
+        aportePlaneado: aporte,
+        aporteMensualPlaneado: aporte,
+        montoAhorrado: ahorrado,
+        montoActual: ahorrado,
+        montoObjetivo: obj,
+        objetivo: obj
+      };
+    });
+    localStorage.setItem('metas_ahorro', JSON.stringify(normalized));
   }
 
   const persistTxs = () => {
-    const serialized = txs.map((t) => ({ ...t, ts: new Date(t.ts).toISOString() }));
+    const serialized = txs.map((t) => ({
+      ...t,
+      tipo: t.type,
+      monto: t.amount,
+      categoria: t.category === 'fijos' ? 'Fijos' : (CATEGORIES[t.category]?.label || t.category),
+      origen: t.source,
+      nota: t.note,
+      ts: new Date(t.ts).toISOString()
+    }));
     // Sincroniza tanto 'movimientos' como 'patrimonio.movimientos'
     localStorage.setItem('movimientos', JSON.stringify(serialized));
     localStorage.setItem('patrimonio.movimientos', JSON.stringify(serialized));
@@ -128,9 +200,10 @@
       localStorage.setItem('presupuesto_mensual', String(multiplied));
       return multiplied;
     }
-    const fallback = 1200000;
-    localStorage.setItem('presupuesto_mensual', String(fallback));
-    return fallback;
+    // Cero números estáticos: el presupuesto mensual se calcula en tiempo real a partir de ingresos fijos
+    const dynamicBudget = (JSON.parse(localStorage.getItem('ingresos_fijos')) || [])
+      .reduce((acc, item) => acc + Number(item.montoMensual || item.monto || 0), 0);
+    return dynamicBudget;
   }
 
   let settings = Object.assign({ budget: loadMonthlyBudget(), sunday: true }, load(KEYS.settings, {}));
@@ -267,30 +340,44 @@
     // Transacciones que caen dentro del ciclo activo (desde el inicio del ciclo)
     const cycleTxs = txs.filter((t) => t.ts >= startCycleTs);
 
-    // 1. Ingresos Fijos del Ciclo = Suma de ingresos_fijos + ingresos extraordinarios registrados en este ciclo
-    const ingresosFijosSuma = ingresos_fijos.reduce((sum, item) => sum + (Number(item.monto) || 0), 0);
-    const ingresosExtra = cycleTxs.filter((t) => t.type === 'ingreso').reduce((sum, t) => sum + t.amount, 0);
+    // 1. Ingresos Fijos del Ciclo = Suma de ingresos_fijos (soporta montoMensual o monto) + extraordinarios del ciclo
+    const rawIngresos = JSON.parse(localStorage.getItem('ingresos_fijos')) || [];
+    const ingresosFijosSuma = rawIngresos
+      .reduce((acc, item) => acc + Number(item.montoMensual !== undefined ? item.montoMensual : (item.monto !== undefined ? item.monto : 0)), 0);
+    const ingresosExtra = cycleTxs
+      .filter((t) => t.type === 'ingreso' || t.tipo === 'ingreso')
+      .reduce((sum, t) => sum + Number(t.amount || t.monto || 0), 0);
     const totalIngresos = ingresosFijosSuma + ingresosExtra;
 
-    // 2. Gastos Fijos Operativos (Servicios, transporte, suscripciones)
-    const gastosFijosOperativos = gastos_fijos.reduce((sum, item) => {
-      const proy = Number(item.montoProyectado) || 0;
-      const cub = Number(item.montoCubierto) || 0;
-      return sum + Math.max(0, proy - cub);
-    }, 0);
-    const fijosCubiertos = gastos_fijos.reduce((sum, item) => sum + (Number(item.montoCubierto) || 0), 0);
+    // 2. Gastos Fijos (Compromisos totales proyectados y pendientes)
+    const rawGastosFijos = JSON.parse(localStorage.getItem('gastos_fijos')) || [];
+    const totalCompromisos = rawGastosFijos
+      .reduce((acc, item) => acc + Number(item.montoProyectado !== undefined ? item.montoProyectado : (item.monto !== undefined ? item.monto : 0)), 0);
+    const totalFijosPendientes = rawGastosFijos
+      .reduce((acc, item) => {
+        const proy = Number(item.montoProyectado !== undefined ? item.montoProyectado : (item.monto !== undefined ? item.monto : 0));
+        const cub = Number(item.montoCubierto || 0);
+        return acc + Math.max(0, proy - cub);
+      }, 0);
+    const fijosCubiertos = rawGastosFijos
+      .reduce((acc, item) => acc + Number(item.montoCubierto || 0), 0);
 
-    // 3. Cuota Mensual de Ahorro = Suma de todos los aportes mensuales planeados (Compromiso Fijo Sagrado)
-    const cuotaAhorroMensual = metas_ahorro.reduce((sum, item) => sum + (Number(item.aporteMensualPlaneado) || 0), 0);
-    const ahorroTotalAcumulado = metas_ahorro.reduce((sum, item) => sum + (Number(item.montoActual) || 0), 0);
+    // 3. Metas de Ahorro (Aporte mensual planeado protegido sagrado)
+    const rawMetasAhorro = JSON.parse(localStorage.getItem('metas_ahorro')) || [];
+    const totalAhorroProtegido = rawMetasAhorro
+      .reduce((acc, item) => acc + Number(item.aportePlaneado !== undefined ? item.aportePlaneado : (item.aporteMensualPlaneado !== undefined ? item.aporteMensualPlaneado : (item.montoAhorrado !== undefined ? item.montoAhorrado : (item.montoActual || 0)))), 0);
+    const ahorroTotalAcumulado = rawMetasAhorro
+      .reduce((acc, item) => acc + Number(item.montoAhorrado !== undefined ? item.montoAhorrado : (item.montoActual || 0)), 0);
 
-    // 4. Gastos Variables = Gastos del ciclo registrados que no corresponden a fijos
-    const gastosVariables = cycleTxs.filter((t) => t.type === 'gasto' && t.category !== 'fijos').reduce((sum, t) => sum + t.amount, 0);
+    // 4. Gastos variables registrados dentro del ciclo activo (excluyendo abonos a bolsas fijas para no duplicar)
+    const gastosVariablesCiclo = cycleTxs
+      .filter((m) => (m.type === 'gasto' || m.tipo === 'gasto') && (m.category !== 'fijos' && m.categoria !== 'Fijos' && m.categoria !== 'fijos'))
+      .reduce((acc, m) => acc + Number(m.amount || m.monto || 0), 0);
 
-    // 5. Dinero Libre Real = Ingresos Fijos - Gastos Fijos Operativos - Cuota Mensual de Ahorro - Gastos Variables
-    const dineroLibreReal = totalIngresos - gastosFijosOperativos - cuotaAhorroMensual - gastosVariables;
+    // 5. Capital libre real resultante
+    const dineroLibreReal = totalIngresos - totalCompromisos - totalAhorroProtegido - gastosVariablesCiclo;
 
-    // 6. Margen Diario Disponible = Dinero Libre Real / Días restantes del ciclo activo
+    // 6. Margen diario disponible
     const margenDiario = Math.round(dineroLibreReal / diasRestantes);
 
     return {
@@ -299,14 +386,18 @@
       diaActual,
       duracionCiclo: duracion,
       diasRestantes,
+      startCycleTs,
       totalIngresos,
       ingresosFijosSuma,
       ingresosExtra,
-      gastosFijosOperativos,
+      totalCompromisos,
+      totalFijosPendientes,
+      gastosFijosOperativos: totalFijosPendientes,
       fijosCubiertos,
-      cuotaAhorroMensual,
+      totalAhorroProtegido,
+      cuotaAhorroMensual: totalAhorroProtegido,
       ahorroTotalAcumulado,
-      gastosVariables,
+      gastosVariables: gastosVariablesCiclo,
       dineroLibreReal,
       margenDiario
     };
@@ -346,9 +437,18 @@
   }
 
   function renderBoveda() {
+    const pm = getPatrimonialMetrics();
     const end = tomorrowTs();
-    const balance = balanceAt(end);
-    const debt = txs.filter((t) => t.type === 'gasto' && (t.source === 'credito' || t.origen === 'credito')).reduce((s, t) => s + t.amount, 0);
+
+    // Saldo histórico disponible en Bóveda (Efectivo / Débito)
+    // Se toma el saldo acumulado antes del ciclo más la liquidez real del ciclo activo
+    const saldoPrevio = txs.filter((t) => t.ts < pm.startCycleTs).reduce((s, t) => s + cashEffect(t), 0);
+    const gastosDebitoCiclo = txs.filter((t) => t.ts >= pm.startCycleTs && (t.type === 'gasto' || t.tipo === 'gasto') && (t.source === 'debito' || t.origen === 'debito'))
+      .reduce((s, t) => s + Number(t.amount || t.monto || 0), 0);
+    const balance = saldoPrevio + (pm.totalIngresos - gastosDebitoCiclo);
+    const debt = txs.filter((t) => (t.type === 'gasto' || t.tipo === 'gasto') && (t.source === 'credito' || t.origen === 'credito'))
+      .reduce((s, t) => s + Number(t.amount || t.monto || 0), 0);
+
     $('#balTotal').textContent = money(balance);
     $('#cardDebt').textContent = money(debt);
 
@@ -371,14 +471,13 @@
     $('#sparkDot').setAttribute('cy', pts[6][1]);
 
     // Módulo 3: Render Centro de Control & Burn Rate
-    const pm = getPatrimonialMetrics();
     const dailyAvailableEl = $('#dailyAvailable');
     if (dailyAvailableEl) {
       dailyAvailableEl.textContent = `Margen disponible para hoy: ${pm.margenDiario < 0 ? '-' : ''}$ ${fmt(pm.margenDiario)} COP`;
     }
     const daysEl = $('#dailyRemainingDays');
     if (daysEl) {
-      daysEl.textContent = `Ciclo activo: Día ${pm.diaActual} de 30 (Quedan ${pm.diasRestantes} días)`;
+      daysEl.textContent = `Ciclo activo: Día ${pm.diaActual} de ${pm.duracionCiclo} (Quedan ${pm.diasRestantes} días)`;
     }
     const burnBadge = $('#burnRateBadge');
     if (burnBadge) {
@@ -386,14 +485,18 @@
         burnBadge.textContent = 'Ritmo Saludable 🟢';
         burnBadge.className = 'text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 text-[#34D399]';
       } else {
-        burnBadge.textContent = 'Ritmo Ajustado 🔴';
+        burnBadge.textContent = 'Presupuesto Agotado 🔴';
         burnBadge.className = 'text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#720000]/30 border border-[#bb0000]/50 text-[#ffb4a8]';
       }
     }
     $('#burnTotalIngresos').textContent = `+$ ${fmt(pm.totalIngresos)} COP`;
-    $('#burnFijosPendientes').textContent = `-$ ${fmt(pm.gastosFijosOperativos)} COP`;
-    $('#burnAhorroDestinado').textContent = `-$ ${fmt(pm.cuotaAhorroMensual)} COP`;
-    $('#burnMargenLibre').textContent = `${pm.dineroLibreReal < 0 ? '-' : ''}$ ${fmt(pm.dineroLibreReal)} COP`;
+    $('#burnFijosPendientes').textContent = `-$ ${fmt(pm.totalFijosPendientes)} COP`;
+    $('#burnAhorroDestinado').textContent = `-$ ${fmt(pm.totalAhorroProtegido)} COP`;
+    const margenLibreEl = $('#burnMargenLibre');
+    if (margenLibreEl) {
+      margenLibreEl.textContent = `${pm.dineroLibreReal < 0 ? '-' : ''}$ ${fmt(pm.dineroLibreReal)} COP`;
+      margenLibreEl.className = `text-sm font-bold font-numbers mt-0.5 ${pm.dineroLibreReal < 0 ? 'text-[#ffb4a8]' : 'text-white'}`;
+    }
 
     // Módulos interactivos
     renderGastosFijosModule();
@@ -431,8 +534,8 @@
     }
 
     container.innerHTML = gastos_fijos.map((item) => {
-      const proy = Number(item.montoProyectado) || 0;
-      const cub = Number(item.montoCubierto) || 0;
+      const proy = Number(item.montoProyectado !== undefined ? item.montoProyectado : (item.monto !== undefined ? item.monto : 0));
+      const cub = Number(item.montoCubierto || 0);
       const pct = proy > 0 ? Math.min(100, Math.round((cub / proy) * 100)) : 100;
       const isComplete = cub >= proy && proy > 0;
       const pendiente = Math.max(0, proy - cub);
@@ -494,9 +597,9 @@
     }
 
     container.innerHTML = metas_ahorro.map((meta) => {
-      const obj = Number(meta.montoObjetivo) || 0;
-      const act = Number(meta.montoActual) || 0;
-      const aportePlan = Number(meta.aporteMensualPlaneado) || 0;
+      const obj = Number(meta.montoObjetivo !== undefined ? meta.montoObjetivo : (meta.objetivo !== undefined ? meta.objetivo : 0));
+      const act = Number(meta.montoAhorrado !== undefined ? meta.montoAhorrado : (meta.montoActual !== undefined ? meta.montoActual : 0));
+      const aportePlan = Number(meta.aportePlaneado !== undefined ? meta.aportePlaneado : (meta.aporteMensualPlaneado !== undefined ? meta.aporteMensualPlaneado : 0));
       const pct = obj > 0 ? Math.min(100, Math.round((act / obj) * 100)) : 100;
       const isComplete = act >= obj && obj > 0;
       const falta = Math.max(0, obj - act);
@@ -558,27 +661,30 @@
       return;
     }
 
-    container.innerHTML = ingresos_fijos.map((item) => `
-      <div class="glass-surface rounded-[20px] p-3 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
-            <span class="material-symbols-outlined text-[14px]">payments</span>
+    container.innerHTML = ingresos_fijos.map((item) => {
+      const monto = Number(item.montoMensual !== undefined ? item.montoMensual : (item.monto !== undefined ? item.monto : 0));
+      return `
+        <div class="glass-surface rounded-[20px] p-3 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <span class="material-symbols-outlined text-[14px]">payments</span>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-semibold text-white truncate">${esc(item.nombre)}</span>
+              <span class="text-[10px] text-[#9CA3AF] font-numbers">+$ ${fmt(monto)} COP/mes</span>
+            </div>
           </div>
-          <div class="flex flex-col min-w-0">
-            <span class="text-xs font-semibold text-white truncate">${esc(item.nombre)}</span>
-            <span class="text-[10px] text-[#9CA3AF] font-numbers">+$ ${fmt(item.monto)} COP/mes</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" data-action="iniciar-ciclo" data-id="${item.id}" class="btn-iniciar-ciclo bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium active:scale-95 transition-all">
+              <span>🔄</span>
+              <span>Iniciar ciclo hoy</span>
+            </button>
+            <button type="button" data-action="edit-ingreso" data-id="${item.id}" class="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white active:scale-95 transition-all" aria-label="Editar">
+              <span class="material-symbols-outlined text-[14px]">edit</span>
+            </button>
           </div>
-        </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" data-action="iniciar-ciclo" data-id="${item.id}" class="btn-iniciar-ciclo bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium active:scale-95 transition-all">
-            <span>🔄</span>
-            <span>Iniciar ciclo hoy</span>
-          </button>
-          <button type="button" data-action="edit-ingreso" data-id="${item.id}" class="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/10 flex items-center justify-center text-[#9CA3AF] hover:text-white active:scale-95 transition-all" aria-label="Editar">
-            <span class="material-symbols-outlined text-[14px]">edit</span>
-          </button>
-        </div>
-      </div>`).join('');
+        </div>`;
+    }).join('');
   }
 
   function renderSummaryCard(cycleExp) {
@@ -748,11 +854,11 @@
       chartBalanceInstance = null;
     }
 
-    const ingresos = periodTxs.filter((t) => t.type === 'ingreso').reduce((s, t) => s + t.amount, 0)
-      + (state.period === 'month' ? ingresos_fijos.reduce((s, i) => s + (Number(i.monto) || 0), 0) : 0);
+    const ingresos = periodTxs.filter((t) => t.type === 'ingreso' || t.tipo === 'ingreso').reduce((s, t) => s + Number(t.amount || t.monto || 0), 0)
+      + (state.period === 'month' ? ingresos_fijos.reduce((s, i) => s + Number(i.montoMensual !== undefined ? i.montoMensual : (i.monto !== undefined ? i.monto : 0)), 0) : 0);
 
-    const fijosCubiertos = periodTxs.filter((t) => t.type === 'gasto' && t.category === 'fijos').reduce((s, t) => s + t.amount, 0);
-    const variables = periodTxs.filter((t) => t.type === 'gasto' && t.category !== 'fijos').reduce((s, t) => s + t.amount, 0);
+    const fijosCubiertos = periodTxs.filter((t) => (t.type === 'gasto' || t.tipo === 'gasto') && (t.category === 'fijos' || t.categoria === 'Fijos' || t.categoria === 'fijos')).reduce((s, t) => s + Number(t.amount || t.monto || 0), 0);
+    const variables = periodTxs.filter((t) => (t.type === 'gasto' || t.tipo === 'gasto') && (t.category !== 'fijos' && t.categoria !== 'Fijos' && t.categoria !== 'fijos')).reduce((s, t) => s + Number(t.amount || t.monto || 0), 0);
 
     $('#mbTotalIngresos').textContent = `$ ${fmt(ingresos)}`;
     $('#mbFijosCubiertos').textContent = `$ ${fmt(fijosCubiertos)}`;
@@ -1188,16 +1294,20 @@
     activeFijoAbono.montoCubierto = (Number(activeFijoAbono.montoCubierto) || 0) + abono;
     saveGastosFijos();
 
-    const tx = {
+    const tx = normalizeTx({
       id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: 'gasto',
+      tipo: 'gasto',
       amount: abono,
+      monto: abono,
       note: `Abono: ${activeFijoAbono.nombre}`,
+      nota: `Abono: ${activeFijoAbono.nombre}`,
       category: 'fijos',
+      categoria: 'Fijos',
       source: 'debito',
       origen: 'debito',
       ts: Date.now()
-    };
+    });
     txs.push(tx);
     persistTxs();
 
@@ -1209,9 +1319,10 @@
 
   function openFormFijo(fijoId = null) {
     const fijo = fijoId ? gastos_fijos.find((x) => x.id === fijoId) : null;
+    const proy = Number(fijo ? (fijo.montoProyectado !== undefined ? fijo.montoProyectado : (fijo.monto !== undefined ? fijo.monto : 0)) : 0);
     $('#fijoIdInput').value = fijo ? fijo.id : '';
     $('#fijoNombreInput').value = fijo ? fijo.nombre : '';
-    $('#fijoProyectadoInput').value = fijo ? `$ ${fmt(fijo.montoProyectado)}` : '';
+    $('#fijoProyectadoInput').value = proy > 0 ? `$ ${fmt(proy)}` : '';
     $('#formFijoTitle').textContent = fijo ? 'Editar Compromiso Fijo' : 'Nuevo Compromiso Fijo';
     $('#btnDeleteFijo').hidden = !fijo;
     $('#btnSaveFijo').className = fijo ? 'h-11 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all' : 'h-11 col-span-2 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all';
@@ -1237,12 +1348,14 @@
       if (idx !== -1) {
         gastos_fijos[idx].nombre = nombre;
         gastos_fijos[idx].montoProyectado = proyectado;
+        gastos_fijos[idx].monto = proyectado;
       }
     } else {
       gastos_fijos.push({
         id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         nombre,
         montoProyectado: proyectado,
+        monto: proyectado,
         montoCubierto: 0
       });
     }
@@ -1268,8 +1381,8 @@
     const meta = metas_ahorro.find((x) => x.id === metaId);
     if (!meta) return;
     activeMetaAporte = meta;
-    const obj = Number(meta.montoObjetivo) || 0;
-    const act = Number(meta.montoActual) || 0;
+    const obj = Number(meta.montoObjetivo !== undefined ? meta.montoObjetivo : (meta.objetivo !== undefined ? meta.objetivo : 0));
+    const act = Number(meta.montoAhorrado !== undefined ? meta.montoAhorrado : (meta.montoActual !== undefined ? meta.montoActual : 0));
     const falta = Math.max(0, obj - act);
     const pct = obj > 0 ? Math.min(100, Math.round((act / obj) * 100)) : 100;
 
@@ -1295,7 +1408,9 @@
       toast('Ingresa un monto de aporte mayor a 0');
       return;
     }
-    activeMetaAporte.montoActual = (Number(activeMetaAporte.montoActual) || 0) + aporte;
+    const actual = Number(activeMetaAporte.montoAhorrado !== undefined ? activeMetaAporte.montoAhorrado : (activeMetaAporte.montoActual || 0)) + aporte;
+    activeMetaAporte.montoActual = actual;
+    activeMetaAporte.montoAhorrado = actual;
     saveMetasAhorro();
     closeAportarMetaModal();
     renderAll();
@@ -1305,11 +1420,15 @@
 
   function openFormMeta(metaId = null) {
     const meta = metaId ? metas_ahorro.find((x) => x.id === metaId) : null;
+    const obj = Number(meta ? (meta.montoObjetivo !== undefined ? meta.montoObjetivo : (meta.objetivo !== undefined ? meta.objetivo : 0)) : 0);
+    const plan = Number(meta ? (meta.aportePlaneado !== undefined ? meta.aportePlaneado : (meta.aporteMensualPlaneado !== undefined ? meta.aporteMensualPlaneado : 0)) : 0);
+    const inicial = Number(meta ? (meta.montoAhorrado !== undefined ? meta.montoAhorrado : (meta.montoActual !== undefined ? meta.montoActual : 0)) : 0);
+
     $('#metaIdInput').value = meta ? meta.id : '';
     $('#metaNombreInput').value = meta ? meta.nombre : '';
-    $('#metaObjetivoInput').value = meta ? `$ ${fmt(meta.montoObjetivo)}` : '';
-    $('#metaAporteMensualInput').value = meta && meta.aporteMensualPlaneado ? `$ ${fmt(meta.aporteMensualPlaneado)}` : '';
-    $('#metaInicialInput').value = meta ? (meta.montoActual ? `$ ${fmt(meta.montoActual)}` : '') : '';
+    $('#metaObjetivoInput').value = obj > 0 ? `$ ${fmt(obj)}` : '';
+    $('#metaAporteMensualInput').value = plan > 0 ? `$ ${fmt(plan)}` : '';
+    $('#metaInicialInput').value = inicial > 0 ? `$ ${fmt(inicial)}` : '';
     $('#formMetaTitle').textContent = meta ? 'Editar Meta de Ahorro' : 'Nueva Meta de Ahorro';
     $('#btnDeleteMeta').hidden = !meta;
     $('#btnSaveMeta').className = meta ? 'h-11 rounded-full bg-gradient-to-r from-[#059669] to-[#10B981] text-white text-xs font-bold active:scale-95 transition-all' : 'h-11 col-span-2 rounded-full bg-gradient-to-r from-[#059669] to-[#10B981] text-white text-xs font-bold active:scale-95 transition-all shadow-[0_4px_16px_rgba(16,185,129,0.4)]';
@@ -1337,16 +1456,24 @@
       if (idx !== -1) {
         metas_ahorro[idx].nombre = nombre;
         metas_ahorro[idx].montoObjetivo = objetivo;
+        metas_ahorro[idx].objetivo = objetivo;
         metas_ahorro[idx].aporteMensualPlaneado = aporteMensual;
-        if (inicial > 0) metas_ahorro[idx].montoActual = inicial;
+        metas_ahorro[idx].aportePlaneado = aporteMensual;
+        if (inicial > 0) {
+          metas_ahorro[idx].montoActual = inicial;
+          metas_ahorro[idx].montoAhorrado = inicial;
+        }
       }
     } else {
       metas_ahorro.push({
         id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         nombre,
         montoObjetivo: objetivo,
+        objetivo: objetivo,
         aporteMensualPlaneado: aporteMensual,
-        montoActual: inicial || 0
+        aportePlaneado: aporteMensual,
+        montoActual: inicial || 0,
+        montoAhorrado: inicial || 0
       });
     }
     saveMetasAhorro();
@@ -1368,9 +1495,10 @@
   /* ==================== INGRESOS FIJOS GESTIÓN ==================== */
   function openFormIngreso(ingresoId = null) {
     const ing = ingresoId ? ingresos_fijos.find((x) => x.id === ingresoId) : null;
+    const monto = Number(ing ? (ing.montoMensual !== undefined ? ing.montoMensual : (ing.monto !== undefined ? ing.monto : 0)) : 0);
     $('#ingresoIdInput').value = ing ? ing.id : '';
     $('#ingresoNombreInput').value = ing ? ing.nombre : '';
-    $('#ingresoMontoInput').value = ing ? `$ ${fmt(ing.monto)}` : '';
+    $('#ingresoMontoInput').value = monto > 0 ? `$ ${fmt(monto)}` : '';
     const chk = $('#ingresoIniciarCicloCheckbox');
     if (chk) chk.checked = false;
     $('#formIngresoTitle').textContent = ing ? 'Editar Ingreso Fijo' : 'Nuevo Ingreso Fijo';
@@ -1399,12 +1527,14 @@
       if (idx !== -1) {
         ingresos_fijos[idx].nombre = nombre;
         ingresos_fijos[idx].monto = monto;
+        ingresos_fijos[idx].montoMensual = monto;
       }
     } else {
       ingresos_fijos.push({
         id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         nombre,
-        monto
+        monto,
+        montoMensual: monto
       });
     }
     saveIngresosFijos();
@@ -1429,18 +1559,20 @@
     toast('Ingreso fijo eliminado');
   }
 
-  /* ==================== MÓDULO 6: CORRECCIÓN SIMULADOR DE ANTOJOS CON GEMINI 3.8 FLASH ==================== */
+  /* ==================== MÓDULO 6: CORRECCIÓN Y CALIBRACIÓN ASESOR IA ("¿ME LO COMPRO?") ==================== */
   function updateAntojoPreview() {
     const monto = parseNum($('#antojoMontoInput').value);
     const pm = getPatrimonialMetrics();
     $('#antojoCupoAntes').textContent = `${pm.margenDiario < 0 ? '-' : ''}$ ${fmt(pm.margenDiario)} COP`;
-    $('#antojoDiasRestantes').textContent = `${pm.diasRestantes} días (Ciclo: Día ${pm.diaActual} de 30)`;
+    $('#antojoDiasRestantes').textContent = `${pm.diasRestantes} días (Ciclo: Día ${pm.diaActual} de ${pm.duracionCiclo})`;
 
     const nuevoDineroLibre = pm.dineroLibreReal - monto;
     const nuevoMargenDiario = Math.round(nuevoDineroLibre / pm.diasRestantes);
     const despuesEl = $('#antojoCupoDespues');
-    despuesEl.textContent = `${nuevoMargenDiario < 0 ? '-' : ''}$ ${fmt(nuevoMargenDiario)} COP`;
-    despuesEl.className = `font-bold font-numbers ${nuevoMargenDiario < 0 ? 'text-[#ff9a8a]' : 'text-white'}`;
+    if (despuesEl) {
+      despuesEl.textContent = `${nuevoMargenDiario < 0 ? '-' : ''}$ ${fmt(nuevoMargenDiario)} COP`;
+      despuesEl.className = `font-bold font-numbers ${nuevoMargenDiario < 0 ? 'text-[#ffb4a8]' : 'text-white'}`;
+    }
   }
 
   function openAntojoModal() {
@@ -1457,6 +1589,32 @@
     $('#modal-antojo').classList.remove('modal-open');
   }
 
+  function getDeterministicVerdict(pm, monto, concepto) {
+    const nuevoDineroLibre = pm.dineroLibreReal - monto;
+    const nuevoMargenDiario = Math.round(nuevoDineroLibre / pm.diasRestantes);
+    const impactoPct = pm.margenDiario > 0 ? Math.round(((pm.margenDiario - nuevoMargenDiario) / pm.margenDiario) * 100) : 100;
+
+    let veredicto = 'PRECAUCIÓN 🟡';
+    let badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]';
+    let explicacion = '';
+
+    if (nuevoDineroLibre < 0 || nuevoMargenDiario <= 0) {
+      veredicto = 'LUZ ROJA 🔴';
+      badgeClass = 'bg-[#720000]/30 text-[#ffb4a8] border border-[#bb0000]/50 shadow-[0_0_12px_rgba(187,0,0,0.4)]';
+      explicacion = `Este antojo agota tu capital libre real del ciclo y dejaría tu cupo diario en números rojos ($${fmt(nuevoMargenDiario)} COP/día). Pondrías en riesgo tus gastos fijos o tu ahorro protegido sagrado.`;
+    } else if (impactoPct > 35 || monto > pm.margenDiario * 1.5 || nuevoDineroLibre < pm.totalIngresos * 0.1) {
+      veredicto = 'PRECAUCIÓN 🟡';
+      badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]';
+      explicacion = `Comprar "${concepto}" consume el ${impactoPct}% de tu cupo diario, reduciéndolo de $${fmt(pm.margenDiario)} a $${fmt(nuevoMargenDiario)} COP/día durante los próximos ${pm.diasRestantes} días. Solo procede si moderas otros consumos.`;
+    } else {
+      veredicto = 'LUZ VERDE 🟢';
+      badgeClass = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.4)]';
+      explicacion = `Excelente liquidez: tras comprar "${concepto}", mantendrás un margen saludable de $${fmt(nuevoMargenDiario)} COP/día y tu ahorro protegido de $${fmt(pm.totalAhorroProtegido)} COP queda 100% blindado.`;
+    }
+
+    return { veredicto, badgeClass, explicacion, nuevoDineroLibre, nuevoMargenDiario };
+  }
+
   async function consultarAntojoGemini() {
     const monto = parseNum($('#antojoMontoInput').value);
     const concepto = $('#antojoConceptoInput').value.trim() || 'Antojo';
@@ -1467,18 +1625,8 @@
       return;
     }
 
-    const key = getApiKey();
-    if (!key) {
-      toast('Guarda tu Google AI Studio API Key en Ajustes primero');
-      closeAntojoModal();
-      setTab('ajustes');
-      setTimeout(() => $('#apiKeyInput').focus(), 150);
-      return;
-    }
-
     const pm = getPatrimonialMetrics();
-    const nuevoDineroLibre = pm.dineroLibreReal - monto;
-    const nuevoMargenDiario = Math.round(nuevoDineroLibre / pm.diasRestantes);
+    const det = getDeterministicVerdict(pm, monto, concepto);
 
     // Estado de carga DENTRO del modal activo
     const resContainer = $('#resultado-simulador-ia');
@@ -1488,7 +1636,7 @@
           <span class="material-symbols-outlined spin text-white text-[22px]">sync</span>
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white">Analizando impacto financiero...</span>
-            <span class="text-[11px] text-[#9CA3AF]">Evaluando fijos, cuota de ahorro sagrada y ciclo de 30 días</span>
+            <span class="text-[11px] text-[#9CA3AF]">Evaluando fijos, ahorro protegido y ciclo de 30 días</span>
           </div>
         </div>`;
     }
@@ -1498,24 +1646,84 @@
     const btn = $('#btnConsultarAntojo');
 
     btn.disabled = true;
-    icon.classList.add('spin');
-    label.textContent = 'Analizando impacto financiero...';
+    icon?.classList.add('spin');
+    if (label) label.textContent = 'Analizando impacto financiero...';
 
-    // Instrucción estricta al modelo con contexto del ahorro mensual como gasto fijo sagrado
-    const promptTexto = `Eres un asesor financiero personal directo y realista.
-El usuario ya apartó su meta de ahorro como un gasto fijo sagrado. Evalúa si el antojo solicitado pone en riesgo el dinero libre restante para lo que queda de su ciclo financiero de 30 días, considerando qué día del ciclo es hoy.
+    const key = getApiKey();
 
-Datos Financieros del Usuario en Colombia (COP):
-- Ciclo Financiero Activo: Día ${pm.diaActual} de 30. Quedan ${pm.diasRestantes} días en este ciclo (incluyendo hoy).
-- Ingreso del ciclo: $${fmt(pm.totalIngresos)} COP.
-- Gastos fijos operativos (servicios, transporte, suscripciones): $${fmt(pm.gastosFijosOperativos)} COP pendientes.
-- Cuota de ahorro mensual ya protegida (sagrada): $${fmt(pm.cuotaAhorroMensual)} COP.
+    function renderResultado(veredicto, badgeClass, explicacionTexto, notaSub = '') {
+      if (!resContainer) return;
+      resContainer.innerHTML = `
+        <div class="glass-surface p-4 rounded-2xl border border-white/15 flex flex-col gap-3 relative overflow-hidden" style="background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(20,20,26,0.85) 100%);">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase font-bold text-[#9CA3AF] tracking-widest">Veredicto Asesor</span>
+            <span class="text-xs font-extrabold px-3 py-1 rounded-full ${badgeClass}">
+              ${veredicto}
+            </span>
+          </div>
+          
+          <p class="text-sm text-[#FFFFFF] leading-relaxed font-normal pr-1">
+            ${esc(explicacionTexto)}
+          </p>
+
+          ${notaSub ? `<span class="text-[10px] text-[#9CA3AF] italic">${esc(notaSub)}</span>` : ''}
+
+          <div class="pt-2 border-t border-white/10 flex flex-col gap-2 mt-1">
+            <button id="btnComprarAntojo" type="button" class="w-full h-11 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg">
+              <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
+              <span>Comprar y Registrar Gasto</span>
+            </button>
+            <button id="btnDescartarAntojo" type="button" class="w-full py-1.5 text-center text-xs text-[#9CA3AF] hover:text-white active:scale-95 transition-colors">
+              Pensarlo mejor / No comprar
+            </button>
+          </div>
+        </div>`;
+
+      const modalContent = $('#modal-antojo .app-modal-card');
+      if (modalContent) {
+        setTimeout(() => {
+          modalContent.scrollTo({ top: modalContent.scrollHeight, behavior: 'smooth' });
+        }, 100);
+      }
+
+      $('#btnComprarAntojo')?.addEventListener('click', comprarAntojoConfirmado);
+      $('#btnDescartarAntojo')?.addEventListener('click', closeAntojoModal);
+    }
+
+    if (!key) {
+      // Diagnóstico instantáneo por regla patrimonial sin error
+      renderResultado(
+        det.veredicto,
+        det.badgeClass,
+        det.explicacion,
+        'Cálculo patrimonial instantáneo. Guarda tu API Key en Ajustes para análisis avanzado con Gemini 3.8 Flash.'
+      );
+      btn.disabled = false;
+      icon?.classList.remove('spin');
+      if (label) label.textContent = 'Consultar a Gemini 3.8 Flash';
+      return;
+    }
+
+    // Prompt estricto y calibrado para Gemini 3.8 Flash
+    const promptTexto = `Eres un asesor financiero personal directo, realista y empático en Colombia.
+El usuario apartó su meta de ahorro como compromiso sagrado. Evalúa si este antojo pone en riesgo su dinero libre para lo que resta de su ciclo flotante de 30 días.
+
+Datos Financieros del Usuario (Pesos Colombianos - COP):
+- Ciclo Financiero Activo: Día ${pm.diaActual} de ${pm.duracionCiclo}. Quedan ${pm.diasRestantes} días en este ciclo (incluyendo hoy).
+- Total Ingresos del ciclo: $${fmt(pm.totalIngresos)} COP.
+- Compromisos Fijos Totales: $${fmt(pm.totalCompromisos)} COP (Pendientes por cubrir: $${fmt(pm.totalFijosPendientes)} COP).
+- Cuota de ahorro mensual ya protegida (sagrada): $${fmt(pm.totalAhorroProtegido)} COP.
 - Gastos variables acumulados del ciclo: $${fmt(pm.gastosVariables)} COP.
-- Dinero libre sobrante real del ciclo (antes del antojo): $${fmt(pm.dineroLibreReal)} COP.
-- Cupo diario antes del antojo: $${fmt(pm.margenDiario)} COP/día.
+- Dinero libre sobrante antes del antojo: $${fmt(pm.dineroLibreReal)} COP.
+- Cupo diario actual antes del antojo: $${fmt(pm.margenDiario)} COP/día.
 - Antojo solicitado: "${concepto}" por valor de $${fmt(monto)} COP.
-- Dinero libre restante si compra el antojo: $${fmt(nuevoDineroLibre)} COP.
-- Cupo diario restante si compra el antojo: $${fmt(nuevoMargenDiario)} COP/día.
+- Dinero libre restante si lo compra: $${fmt(det.nuevoDineroLibre)} COP.
+- Cupo diario restante si lo compra: $${fmt(det.nuevoMargenDiario)} COP/día.
+
+REGLAS DE CALIBRACIÓN:
+1. LUZ ROJA 🔴: Si el dinero libre restante es < 0 o el nuevo cupo diario es <= $0 COP.
+2. PRECAUCIÓN 🟡: Si el antojo reduce el cupo diario en más del 35% o supera 1.5 días de cupo actual.
+3. LUZ VERDE 🟢: Si el cupo diario se mantiene holgado (>65% del actual) y el dinero libre sigue positivo.
 
 Responde obligatoriamente en este formato exacto:
 VEREDICTO: [Luz Verde 🟢 | Precaución 🟡 | Luz Roja 🔴]
@@ -1524,9 +1732,8 @@ EXPLICACION: [Tu análisis de exactamente 2 frases cortas y contundentes sobre e
     try {
       const respuesta = await generarBalanceConGemini(key, promptTexto);
 
-      // Procesar veredicto
-      let veredicto = 'PRECAUCIÓN 🟡';
-      let badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]';
+      let veredicto = det.veredicto;
+      let badgeClass = det.badgeClass;
 
       const lower = respuesta.toLowerCase();
       if (lower.includes('luz verde') || lower.includes('verde')) {
@@ -1535,61 +1742,27 @@ EXPLICACION: [Tu análisis de exactamente 2 frases cortas y contundentes sobre e
       } else if (lower.includes('luz roja') || lower.includes('roja')) {
         veredicto = 'LUZ ROJA 🔴';
         badgeClass = 'bg-[#720000]/30 text-[#ffb4a8] border border-[#bb0000]/50 shadow-[0_0_12px_rgba(187,0,0,0.4)]';
+      } else if (lower.includes('precaución') || lower.includes('amarillo') || lower.includes('amarilla')) {
+        veredicto = 'PRECAUCIÓN 🟡';
+        badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]';
       }
 
       let cleanText = respuesta.replace(/VEREDICTO:[^\n]*/i, '').replace(/EXPLICACION:/i, '').trim();
-      if (!cleanText) cleanText = respuesta;
+      if (!cleanText) cleanText = det.explicacion;
 
-      // Renderizar DENTRO del modal activo en #resultado-simulador-ia
-      if (resContainer) {
-        resContainer.innerHTML = `
-          <div class="glass-surface p-4 rounded-2xl border border-white/15 flex flex-col gap-3 relative overflow-hidden" style="background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(20,20,26,0.85) 100%);">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] uppercase font-bold text-[#9CA3AF] tracking-widest">Veredicto Oficial</span>
-              <span class="text-xs font-extrabold px-3 py-1 rounded-full ${badgeClass}">
-                ${veredicto}
-              </span>
-            </div>
-            
-            <p class="text-sm text-[#FFFFFF] leading-relaxed font-normal pr-1">
-              ${esc(cleanText)}
-            </p>
-
-            <div class="pt-2 border-t border-white/10 flex flex-col gap-2 mt-1">
-              <button id="btnComprarAntojo" type="button" class="w-full h-11 rounded-full btn-liquid-wine text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg">
-                <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
-                <span>Comprar y Registrar Gasto</span>
-              </button>
-              <button id="btnDescartarAntojo" type="button" class="w-full py-1.5 text-center text-xs text-[#9CA3AF] hover:text-white active:scale-95 transition-colors">
-                Pensarlo mejor / No comprar
-              </button>
-            </div>
-          </div>`;
-
-        // Scroll suave al resultado para visibilidad en celulares
-        const modalContent = $('#modal-antojo .app-modal-card');
-        if (modalContent) {
-          setTimeout(() => {
-            modalContent.scrollTo({ top: modalContent.scrollHeight, behavior: 'smooth' });
-          }, 100);
-        }
-
-        $('#btnComprarAntojo')?.addEventListener('click', comprarAntojoConfirmado);
-        $('#btnDescartarAntojo')?.addEventListener('click', closeAntojoModal);
-      }
+      renderResultado(veredicto, badgeClass, cleanText);
     } catch (err) {
-      console.error('[Gemini Antojo Error]', err);
-      if (resContainer) {
-        resContainer.innerHTML = `
-          <div class="p-3.5 rounded-2xl bg-red-950/40 border border-red-800/40 text-xs text-[#ffb4a8]">
-            <strong>Error al consultar Gemini:</strong> ${esc(err.message)}
-          </div>`;
-      }
-      toast(`Error en Gemini: ${err.message}`.slice(0, 120));
+      console.warn('[Gemini fallback to deterministic]', err);
+      renderResultado(
+        det.veredicto,
+        det.badgeClass,
+        det.explicacion,
+        `Gemini no disponible (${err.message}). Veredicto calculado por regla patrimonial.`
+      );
     } finally {
       btn.disabled = false;
-      icon.classList.remove('spin');
-      label.textContent = 'Consultar a Gemini 3.8 Flash';
+      icon?.classList.remove('spin');
+      if (label) label.textContent = 'Consultar a Gemini 3.8 Flash';
     }
   }
 
@@ -1598,16 +1771,20 @@ EXPLICACION: [Tu análisis de exactamente 2 frases cortas y contundentes sobre e
     const concepto = $('#antojoConceptoInput').value.trim() || 'Antojo personal';
     if (monto <= 0) return;
 
-    const tx = {
+    const tx = normalizeTx({
       id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: 'gasto',
+      tipo: 'gasto',
       amount: monto,
+      monto: monto,
       note: concepto,
+      nota: concepto,
       category: 'antojos',
+      categoria: 'Antojos',
       source: 'debito',
       origen: 'debito',
       ts: Date.now()
-    };
+    });
     txs.push(tx);
     persistTxs();
     closeAntojoModal();
@@ -1750,27 +1927,7 @@ Dame un diagnóstico conciso y un consejo práctico en máximo 2 frases cortas.`
         const rawMovs = Array.isArray(data) ? data : (data.movimientos || data['patrimonio.movimientos'] || []);
         if (!Array.isArray(rawMovs)) throw new Error('Formato no válido');
 
-        const clean = rawMovs.filter((t) => t && t.amount > 0 && ['gasto', 'ingreso'].includes(t.type) && CATEGORIES[t.category] && !isNaN(new Date(t.ts)))
-          .map((t) => {
-            const isCred = t.source === 'credito' || t.origen === 'credito';
-            const cuotas = isCred ? (t.cuotas || 1) : 1;
-            return {
-              id: t.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-              type: t.type,
-              amount: Math.round(t.amount),
-              note: String(t.note || CATEGORIES[t.category].label).slice(0, 60),
-              category: t.category,
-              source: isCred ? 'credito' : 'debito',
-              origen: isCred ? 'credito' : 'debito',
-              ...(isCred ? {
-                cuotas,
-                valorCuota: t.valorCuota || Math.round(t.amount / cuotas),
-                diaCorte: t.diaCorte || 15,
-                diaPago: t.diaPago || 3
-              } : {}),
-              ts: new Date(t.ts).getTime()
-            };
-          });
+        const clean = rawMovs.map(normalizeTx).filter(Boolean);
 
         if (!(await confirmDialog({ title: '¿Importar respaldo?', detail: `Se cargarán ${clean.length} movimientos y tus bolsas de fijos/metas del archivo.`, okLabel: 'Importar' }))) return;
 
@@ -1892,6 +2049,7 @@ Dame un diagnóstico conciso y un consejo práctico en máximo 2 frases cortas.`
       }
     });
     $('#btnNewIngresoFijo')?.addEventListener('click', () => openFormIngreso());
+    $('#btnQuickReiniciarCiclo')?.addEventListener('click', () => iniciarCicloHoy());
 
     // Simulador de Antojos
     $('#btnOpenAntojoModal')?.addEventListener('click', openAntojoModal);
@@ -2107,7 +2265,7 @@ Dame un diagnóstico conciso y un consejo práctico en máximo 2 frases cortas.`
     // Sincronizar entre pestañas
     window.addEventListener('storage', (e) => {
       if (e.key === 'movimientos' || e.key === 'patrimonio.movimientos') {
-        txs = loadInitialTxs().map((t) => ({ ...t, ts: new Date(t.ts).getTime() }));
+        txs = loadInitialTxs();
         renderAll();
       }
       if (e.key === 'gastos_fijos') {
@@ -2120,6 +2278,9 @@ Dame un diagnóstico conciso y un consejo práctico en máximo 2 frases cortas.`
       }
       if (e.key === 'ingresos_fijos') {
         ingresos_fijos = JSON.parse(localStorage.getItem('ingresos_fijos')) || [];
+        renderAll();
+      }
+      if (e.key === 'trix_ciclo') {
         renderAll();
       }
       if (e.key === 'presupuesto_mensual' || e.key === KEYS.settings) {

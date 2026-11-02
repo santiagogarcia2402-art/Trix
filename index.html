@@ -360,7 +360,13 @@
             <span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
             <span class="text-[11px] font-bold tracking-wider uppercase text-white/90">Centro de Control Patrimonial</span>
           </div>
-          <span id="burnRateBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 text-[#34D399]">Ritmo Saludable 🟢</span>
+          <div class="flex items-center gap-1.5">
+            <button id="btnQuickReiniciarCiclo" type="button" title="Reiniciar ciclo de 30 días hoy" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-white/[0.05] hover:bg-white/10 active:scale-95 border border-white/10 text-white/80 transition-all flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px] text-emerald-400">autorenew</span>
+              <span>Ciclo 30d</span>
+            </button>
+            <span id="burnRateBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 text-[#34D399]">Ritmo Saludable 🟢</span>
+          </div>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -370,7 +376,7 @@
               Margen disponible para hoy: $ 0 COP
             </h2>
           </div>
-          <span id="dailyRemainingDays" class="text-[11px] text-[#9CA3AF]">Calculado sobre 0 días restantes del mes actual</span>
+          <span id="dailyRemainingDays" class="text-[11px] text-[#9CA3AF]">Calculado sobre 30 días restantes del ciclo</span>
         </div>
 
         <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/[0.08]">
@@ -700,7 +706,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5">
-              <span id="budgetLabel" class="num-lining text-[15px] font-semibold text-white tracking-tight">$ 1.200.000 COP</span>
+              <span id="budgetLabel" class="num-lining text-[15px] font-semibold text-white tracking-tight">$ 0 COP</span>
               <span class="material-symbols-outlined text-[#71717A] text-[18px]">chevron_right</span>
             </div>
           </button>
